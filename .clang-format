@@ -1,0 +1,10 @@
+BasedOnStyle: LLVM
+
+# Unreal Engine の仕様に従い .generated.h は最後に配置されるようにする。
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^".*\.generated\.h"$'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 1

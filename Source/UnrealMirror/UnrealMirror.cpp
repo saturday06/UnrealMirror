@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealMirror.h"
+
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, UnrealMirror, "UnrealMirror" );
+IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, UnrealMirror,
+                              "UnrealMirror");
