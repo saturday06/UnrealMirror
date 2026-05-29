@@ -4,9 +4,10 @@ setlocal
 set "registry_path=HKLM\SOFTWARE\EpicGames\Unreal Engine\5.7"
 set "registry_value=InstalledDirectory"
 set "unreal_engine_root_path="
-
-for /f "skip=2 tokens=1,2,*" %%A in ('reg query "%registry_path%" /v %registry_value% 2^>nul') do (
-  if /i "%%A"=="%registry_value%" set "unreal_engine_root_path=%%C"
+for /f "usebackq delims=" %%A in (
+  `powershell -NoProfile -Command "(Get-ItemProperty ('Registry::' + $env:registry_path)).$env:registry_value"`
+) do (
+  set "unreal_engine_root_path=%%A"
 )
 
 if not defined unreal_engine_root_path (
