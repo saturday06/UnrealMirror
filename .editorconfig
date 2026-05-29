@@ -9,8 +9,14 @@ indent_style = space
 tab_width = 2
 trim_trailing_whitespace = true
 
+[/LICENSE]
+indent_size = unset
+
 [/.gitmodules]
 indent_style = tab
+
+[*.{bat,cmd}]
+end_of_line = crlf
 
 [*.md]
 indent_size = unset
@@ -19,15 +25,12 @@ indent_size = unset
 end_of_line = crlf
 
 [*.c]
-indent_size = 4
 end_of_line = crlf
 
 [*.cpp]
-indent_size = 4
 end_of_line = crlf
 
 [*.h]
-indent_size = 4
 end_of_line = crlf
 
 [*.cs]
@@ -36,7 +39,8 @@ end_of_line = crlf
 
 [*.uproject]
 end_of_line = crlf
-trim_trailing_whitespace = unset
+indent_style = tab
+insert_final_newline = unset
 
 [*.usf]
 end_of_line = crlf

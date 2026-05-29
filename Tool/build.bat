@@ -3,7 +3,7 @@ setlocal
 
 cd /d "%~dp0.."
 
-call "%~dp0\CallRunUAT.cmd" ^
+call "%~dp0\call-run-uat.bat" ^
   BuildCookRun ^
   -noP4 ^
   -platform=Win64 ^
