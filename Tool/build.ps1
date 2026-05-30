@@ -6,6 +6,16 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
+if ($IsWindows) {
+  $platform = "Win64"
+}
+elseif ($IsMacOS) {
+  $platform = "Mac"
+}
+else {
+  throw "Unsupported platform: $($PSVersionTable.Platform)"
+}
+
 $scriptFolderPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRootPath = Resolve-Path (Join-Path $scriptFolderPath '..')
 Set-Location $projectRootPath
@@ -13,7 +23,7 @@ $projectPath = Join-Path $projectRootPath 'UnrealMirror.uproject'
 & (Join-Path $scriptFolderPath 'run-uat.ps1') `
   BuildCookRun `
   -noP4 `
-  -platform=Win64 `
+  "-platform=$platform" `
   -clientconfig=Development `
   -serverconfig=Development `
   -cook `

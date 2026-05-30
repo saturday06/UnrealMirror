@@ -6,18 +6,29 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$registryPath = 'HKLM:\SOFTWARE\EpicGames\Unreal Engine\5.7'
-$registryValue = 'InstalledDirectory'
+$unrealEngineVersion = "5.7"
 
-$unrealEngineRootPath = (Get-ItemProperty -Path $registryPath -Name $registryValue).$registryValue
-if (-not $unrealEngineRootPath) {
-  Write-Output "Unreal Engine installation path not found in registry: $registryPath\$registryValue"
-  exit 1
+if ($IsWindows) {
+  $registryPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\${unrealEngineVersion}"
+  $registryValue = 'InstalledDirectory'
+
+  $unrealEngineRootPath = (Get-ItemProperty -Path $registryPath -Name $registryValue).$registryValue
+  if (-not $unrealEngineRootPath) {
+    Write-Output "Unreal Engine installation path not found in registry: $registryPath\$registryValue"
+    exit 1
+  }
+
+  $runUatPath = Join-Path $unrealEngineRootPath 'Engine\Build\BatchFiles\RunUAT.bat'
+}
+elseif ($IsMacOS) {
+  $runUatPath = "/Users/Shared/Epic Games/UE_${unrealEngineVersion}/Engine/Build/BatchFiles/RunUAT.sh"
+}
+else {
+  throw "Unsupported platform: $($PSVersionTable.Platform)"
 }
 
-$runUatPath = Join-Path $unrealEngineRootPath 'Engine\Build\BatchFiles\RunUAT.bat'
 if (-not (Test-Path -Path $runUatPath -PathType Leaf)) {
-  Write-Output "RunUAT.bat was not found: $runUatPath"
+  Write-Output "RunUAT was not found: $runUatPath"
   exit 1
 }
 
