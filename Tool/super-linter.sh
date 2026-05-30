@@ -53,20 +53,18 @@ super_linter_container_name="${super_linter_tag_name}-container"
 docker container rm --force "$super_linter_container_name" || true
 docker container create --rm --name "$super_linter_container_name" "$@" "$super_linter_tag_name"
 lint_path=$(mktemp -t super-linter.XXXXXXXXXX -d)
-git clone --no-local --depth 2 --recurse-submodules --shallow-submodules "$repository_root_path" "$lint_path"
+git clone --no-local --depth 2 "$repository_root_path" "$lint_path"
 (
   set +x
   echo "Preparing source tree in '${lint_path}'"
   while IFS= read -r -d '' file; do
     src="${repository_root_path}/${file}"
     dst="${lint_path}/${file}"
-    if [ -e "$src" ]; then
+    if [ -f "$src" ]; then
       mkdir -p "$(dirname "$dst")"
       cp -p "$src" "$dst"
-    else
-      rm -f "$dst"
     fi
-  done < <(git -C "$repository_root_path" ls-files --cached --others --exclude-standard -z --recurse-submodules)
+  done < <(git -C "$repository_root_path" ls-files --cached --others --exclude-standard -z)
 )
 git -C "$lint_path" --no-pager show --stat
 git -C "$lint_path" --no-pager status

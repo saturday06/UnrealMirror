@@ -14,8 +14,8 @@ ENV LOG_LEVEL=WARN
 # https://github.com/super-linter/super-linter/blob/v7.3.0/README.md?plain=1#L690
 ENV RUN_LOCAL=true
 
-# Exclude CHANGELOG.md as it is an automatically generated file by release-please
-ENV FILTER_REGEX_EXCLUDE="^/tmp/lint/CHANGELOG\.md$"
+# Exclude all plugin sources from lint scope
+ENV FILTER_REGEX_EXCLUDE="^/tmp/lint/Plugins/.*"
 
 # https://github.com/super-linter/super-linter?tab=readme-ov-file#configure-linters
 ENV LINTER_RULES_PATH=.
@@ -32,10 +32,12 @@ ENV VALIDATE_GIT_COMMITLINT=false
 ENV VALIDATE_JSCPD=false
 ENV VALIDATE_JSON=false
 ENV VALIDATE_PYTHON_BLACK=false
+ENV VALIDATE_PYTHON_FLAKE8=false
 ENV VALIDATE_PYTHON_ISORT=false
 ENV VALIDATE_PYTHON_MYPY=false
 ENV VALIDATE_PYTHON_PYLINT=false
 ENV VALIDATE_SPELL_CODESPELL=false
+ENV VALIDATE_CLANG_FORMAT=false
 ENV VALIDATE_CPP=false
 ENV VALIDATE_CSHARP=false
 

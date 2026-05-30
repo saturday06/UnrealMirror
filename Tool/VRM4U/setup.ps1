@@ -19,7 +19,7 @@ if ($IsWindows) {
   if (-not $vsInstallationPath) {
     throw "Visual Studio was not found"
   }
-  $cmake = Join-Path $vsInstallationPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+  $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 }
 elseif ($IsMacOS) {
   $cmakeGenerator = "Xcode"
@@ -34,25 +34,25 @@ if (-not (Test-Path $cmake)) {
   throw "cmake.exe was not found: $cmake"
 }
 
-$assimpSourceFolderPath = Join-Path $PSScriptRoot "assimp"
-if (-not (Test-Path (Join-Path $assimpSourceFolderPath "Readme.md"))) {
+$assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "assimp"
+if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
   git -C $PSScriptRoot submodule update --init --recursive
 }
 
-$debugAssimpBuildFolderPath = Join-Path $assimpSourceFolderPath "build" "Debug"
+$debugAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "Debug"
 New-Item -ItemType Directory $debugAssimpBuildFolderPath -Force
 
-$releaseAssimpBuildFolderPath = Join-Path $assimpSourceFolderPath "build" "Release"
+$releaseAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "Release"
 New-Item -ItemType Directory $releaseAssimpBuildFolderPath -Force
 
 $buildSharedLibs = $IsWindows ? "ON" : "OFF"
-$vrm4uAssimpFolderPath = Join-Path $PSScriptRoot ".." ".." "Plugins" "VRM4U" "ThirdParty" "assimp"
+$vrm4uAssimpFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..", "Plugins", "VRM4U", "ThirdParty", "assimp"
 
-New-Item -ItemType Directory (Join-Path $vrm4uAssimpFolderPath "bin" "x64") -Force
-New-Item -ItemType Directory (Join-Path $vrm4uAssimpFolderPath "lib" "x64" "Debug") -Force
-New-Item -ItemType Directory (Join-Path $vrm4uAssimpFolderPath "lib" "x64" "Release") -Force
+New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64") -Force
+New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "x64", "Debug") -Force
+New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "x64", "Release") -Force
 
-if (-not (Test-Path (Join-Path $debugAssimpBuildFolderPath "CMakeCache.txt"))) {
+if (-not (Test-Path (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
   & $cmake `
     -G $cmakeGenerator `
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
@@ -64,15 +64,15 @@ if (-not (Test-Path (Join-Path $debugAssimpBuildFolderPath "CMakeCache.txt"))) {
 }
 & $cmake --build $debugAssimpBuildFolderPath --config Debug
 if ($IsWindows) {
-  Copy-Item (Join-Path $debugAssimpBuildFolderPath "bin" "Debug" "assimp-${vcVersion}-mtd.dll") (Join-Path $vrm4uAssimpFolderPath "bin" "x64")
-  Copy-Item (Join-Path $debugAssimpBuildFolderPath "bin" "Debug" "assimp-${vcVersion}-mtd.pdb") (Join-Path $vrm4uAssimpFolderPath "bin" "x64")
-  Copy-Item (Join-Path $debugAssimpBuildFolderPath "lib" "Debug" "assimp-${vcVersion}-mtd.lib") (Join-Path $vrm4uAssimpFolderPath "lib" "x64" "Debug")
+  Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Debug", "assimp-${vcVersion}-mtd.dll") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64")
+  Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Debug", "assimp-${vcVersion}-mtd.pdb") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64")
+  Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Debug", "assimp-${vcVersion}-mtd.lib") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "x64", "Debug")
 }
 elseif ($IsMacOS) {
-  Copy-Item (Join-Path $debugAssimpBuildFolderPath "lib" "libassimpd.a") (Join-Path $vrm4uAssimpFolderPath "lib" "Mac" "libassimpd.a")
+  Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "libassimpd.a") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimpd.a")
 }
 
-if (-not (Test-Path (Join-Path $releaseAssimpBuildFolderPath "CMakeCache.txt"))) {
+if (-not (Test-Path (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
   & $cmake `
     -G $cmakeGenerator `
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
@@ -85,16 +85,16 @@ if (-not (Test-Path (Join-Path $releaseAssimpBuildFolderPath "CMakeCache.txt")))
 & $cmake --build $releaseAssimpBuildFolderPath --config Release
 
 if ($IsWindows) {
-  Copy-Item (Join-Path $releaseAssimpBuildFolderPath "bin" "Release" "assimp-${vcVersion}-mt.dll") (Join-Path $vrm4uAssimpFolderPath "bin" "x64")
-  Copy-Item (Join-Path $releaseAssimpBuildFolderPath "bin" "Release" "assimp-${vcVersion}-mt.pdb") (Join-Path $vrm4uAssimpFolderPath "bin" "x64")
-  Copy-Item (Join-Path $releaseAssimpBuildFolderPath "lib" "Release" "assimp-${vcVersion}-mt.lib") (Join-Path $vrm4uAssimpFolderPath "lib" "x64" "Release")
+  Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Release", "assimp-${vcVersion}-mt.dll") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64")
+  Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Release", "assimp-${vcVersion}-mt.pdb") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64")
+  Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Release", "assimp-${vcVersion}-mt.lib") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "x64", "Release")
 }
 elseif ($IsMacOS) {
-  Copy-Item (Join-Path $releaseAssimpBuildFolderPath "lib" "libassimp.a") (Join-Path $vrm4uAssimpFolderPath "lib" "Mac" "libassimp.a")
+  Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "libassimp.a") (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimp.a")
 }
 
-$vrm4uAssimpIncludeFolderPath = Join-Path $vrm4uAssimpFolderPath "include" "assimp"
+$vrm4uAssimpIncludeFolderPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "include" -AdditionalChildPath "assimp"
 Remove-Item $vrm4uAssimpIncludeFolderPath -Recurse -Force
 New-Item -ItemType Directory -Path $vrm4uAssimpIncludeFolderPath -Force
-Copy-Item (Join-Path $assimpSourceFolderPath "include" "assimp" "*") $vrm4uAssimpIncludeFolderPath -Recurse
-Copy-Item (Join-Path $releaseAssimpBuildFolderPath "include" "assimp" "*") $vrm4uAssimpIncludeFolderPath -Recurse
+Copy-Item (Join-Path -Path $assimpSourceFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse
+Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse
