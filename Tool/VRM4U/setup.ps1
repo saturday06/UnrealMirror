@@ -23,11 +23,11 @@ if ($IsWindows) {
 }
 elseif ($IsMacOS) {
   $cmakeGenerator = "Xcode"
-  $cmake = Get-Command cmake
+  $cmake = (Get-Command cmake).Source
 }
 else {
   $cmakeGenerator = "Unix Makefiles"
-  $cmake = Get-Command cmake
+  $cmake = (Get-Command cmake).Source
 }
 
 if (-not (Test-Path $cmake)) {

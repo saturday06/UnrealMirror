@@ -32,7 +32,7 @@ elseif ($IsMacOS) {
   $clangFormat = & xcrun --find clang-format
 }
 else {
-  $clangFormat = Get-Command clang-format
+  $clangFormat = (Get-Command clang-format).Source
 }
 
 if (-not (Test-Path $clangFormat)) {
