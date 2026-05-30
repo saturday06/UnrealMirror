@@ -5,15 +5,14 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$vcVersion = $null
-$osxDeploymentTarget = $null
+$vsCmakeGenerator = "Visual Studio 17 2022"
+$vsVersionRange = "[17.0,18.0)"
+$vcVersion = "vc143"
+$osxDeploymentTarget = "14.0"
 
 $cmake = "cmake"
 if ($IsWindows) {
-  $cmakeGenerator = "Visual Studio 17 2022"
-  $vsVersionRange = "[17.0,18.0)"
-  $vcVersion = "vc143"
-
+  $cmakeGenerator = $vsCmakeGenerator
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
   if (-not (Test-Path $vswhere)) {
     throw "vswhere.exe was not found: $vswhere"
@@ -25,7 +24,6 @@ if ($IsWindows) {
   $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 }
 elseif ($IsMacOS) {
-  $osxDeploymentTarget = "14.0"
   $cmakeGenerator = "Xcode"
   $cmake = (Get-Command cmake).Source
 }
