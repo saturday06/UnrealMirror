@@ -12,5 +12,6 @@ public class UnrealMirrorEditorTarget : TargetRules
         DefaultBuildSettings = BuildSettingsVersion.V6;
         IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
         ExtraModuleNames.Add("UnrealMirror");
+        PreBuildSteps.Add(UnrealMirrorTarget.Vrm4uSetupCommand);
     }
 }
