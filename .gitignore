@@ -19,6 +19,7 @@
 /Plugins/VRM4U/**/*.obj
 /Plugins/VRM4U/**/*.pdb
 /Plugins/VRM4U/**/*.so
+/Plugins/VRM4U/ThirdParty/assimp/include/assimp/revision.h
 /Saved/
 /super-linter-output/
 
