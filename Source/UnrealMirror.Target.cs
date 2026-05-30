@@ -1,11 +1,33 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System;
 using System.Collections.Generic;
 using UnrealBuildTool;
 
 public class UnrealMirrorTarget : TargetRules
 {
-    public static readonly string Vrm4uSetupCommand = "pwsh \"$(ProjectDir)/Tool/VRM4U/setup.ps1\"";
+    public static string Vrm4uSetupCommand
+    {
+        get
+        {
+            string shell;
+            if (OperatingSystem.IsWindows())
+            {
+                shell = "pwsh ";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                // macOSのUnreal Editorはとても基本的な環境で動作しており、pwshを直接起動するのが難しい。
+                // zshをログインシェルとして起動することでパスをセットアップし、pwshを見つけられるようにする。
+                shell = "zsh -lc ";
+            }
+            else
+            {
+                shell = "";
+            }
+            return shell + "\"$(ProjectDir)/Tool/VRM4U/setup.ps1\"";
+        }
+    }
 
     public UnrealMirrorTarget(TargetInfo Target)
         : base(Target)
