@@ -17,28 +17,22 @@ Set-Location $scriptFolderPath
 Write-Output 'Formatting C/C++ files...'
 Set-Location $repositoryRootPath
 if ($IsWindows) {
+  $vsVersionRange = "[17.0,18.0)"
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
   if (-not (Test-Path $vswhere)) {
     throw "vswhere.exe was not found: $vswhere"
   }
-  $vsInstallPath = & $vswhere `
-    -latest `
-    -products * `
-    -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang `
-    -property installationPath
-  if (-not $vsInstallPath) {
-    throw "Clang for Visual Studio was not found"
+  $vsInstallationPath = & $vswhere -version $vsVersionRange -property installationPath
+  if (-not $vsInstallationPath) {
+    throw "Visual Studio was not found"
   }
-  $clangFormat = Join-Path $vsInstallPath "VC\Tools\Llvm\x64\bin\clang-format.exe"
+  $clangFormat = Join-Path $vsInstallationPath "VC\Tools\Llvm\x64\bin\clang-format.exe"
 }
 elseif ($IsMacOS) {
   $clangFormat = & xcrun --find clang-format
 }
-elseif ($IsLinux) {
-  $clangFormat = & which clang-format
-}
 else {
-  throw "Unsupported platform: $($PSVersionTable.Platform)"
+  $clangFormat = Get-Command clang-format
 }
 
 if (-not (Test-Path $clangFormat)) {
