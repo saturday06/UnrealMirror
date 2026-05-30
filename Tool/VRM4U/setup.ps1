@@ -5,6 +5,9 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
+$vcVersion = $null
+$osxDeploymentTarget = $null
+
 $cmake = "cmake"
 if ($IsWindows) {
   $cmakeGenerator = "Visual Studio 17 2022"
@@ -22,6 +25,7 @@ if ($IsWindows) {
   $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 }
 elseif ($IsMacOS) {
+  $osxDeploymentTarget = "14.0"
   $cmakeGenerator = "Xcode"
   $cmake = (Get-Command cmake).Source
 }
@@ -58,6 +62,7 @@ if (-not (Test-Path (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "CMa
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
     -DASSIMP_WARNINGS_AS_ERRORS=OFF `
     "-DBUILD_SHARED_LIBS=${buildSharedLibs}" `
+    "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}" `
     -DCMAKE_BUILD_TYPE=Debug `
     -B $debugAssimpBuildFolderPath `
     -S $assimpSourceFolderPath
@@ -78,6 +83,7 @@ if (-not (Test-Path (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "C
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
     -DASSIMP_WARNINGS_AS_ERRORS=OFF `
     "-DBUILD_SHARED_LIBS=${buildSharedLibs}" `
+    "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}" `
     -DCMAKE_BUILD_TYPE=Release `
     -B $releaseAssimpBuildFolderPath `
     -S $assimpSourceFolderPath
