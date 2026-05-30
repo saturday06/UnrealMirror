@@ -271,7 +271,7 @@ extern "C" {
             enum HumanoidBone{
                 MAX_BONE_NUM = 55,
             };
-            VRMHumanoid humanoidBone[HumanoidBone::MAX_BONE_NUM];
+            VRMHumanoid humanoidBone[static_cast<std::underlying_type_t<HumanoidBone>>(HumanoidBone::MAX_BONE_NUM)];
 
             int blendShapeGroupNum = 0;
             VRMBlendShapeGroup *blendShapeGroup = nullptr;
