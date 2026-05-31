@@ -12,7 +12,6 @@ $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
 $vsCmakeGenerator = "Visual Studio 17 2022"
-$vsVersionRange = "[17.0,18.0)"
 $vcVersion = "vc143"
 $osxDeploymentTarget = "14.0"
 $cmakeVersion = "4.3.3"
@@ -47,89 +46,61 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
   }
 }
 
-$cmake = $null
 if ($IsWindows) {
   $cmakeGenerator = $vsCmakeGenerator
-  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-  if (Test-Path $vswhere) {
-    $vsInstallationPath = $null
-    try {
-      $vsInstallationPath = & $vswhere -version $vsVersionRange -property installationPath
-    }
-    catch [System.Management.Automation.NativeCommandExitException] {
-      Write-Output "Visual Studio was not found in registry: ${vswhere} -version ${vsVersionRange} -property installationPath"
-    }
-    if ($vsInstallationPath) {
-      $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
-    }
-  }
+}
+elseif ($IsMacOS) {
+  $cmakeGenerator = "Xcode"
 }
 else {
-  if ($IsMacOS) {
-    $cmakeGenerator = "Xcode"
-  }
-  else {
-    $cmakeGenerator = "Unix Makefiles"
-  }
-  try {
-    $cmake = & bash -lc "command -v cmake"
-  }
-  catch [System.Management.Automation.CommandNotFoundException, System.Management.Automation.NativeCommandExitException] {
-    Write-Output "cmake was not found in bash shell"
-  }
-  if (-not $cmake) {
-    try {
-      $cmake = & zsh -lc "command -v cmake"
-    }
-    catch [System.Management.Automation.CommandNotFoundException, System.Management.Automation.NativeCommandExitException] {
-      Write-Output "cmake was not found in zsh shell"
-    }
-  }
+  $cmakeGenerator = "Unix Makefiles"
 }
 
-if (-not $cmake) {
-  $cmakeCommand = Get-Command cmake -ErrorAction SilentlyContinue
-  if ($cmakeCommand) {
-    $cmake = $cmakeCommand.Source
-  }
+$processArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+switch ($processArchitecture) {
+  "X64" { $cmakeArchitecture = "x86_64" }
+  "Arm64" { $cmakeArchitecture = "arm64" }
+  default { throw "Unsupported Process Architecture: ${processArchitecture}" }
 }
-
-if (-not $cmake -or -not (Test-Path $cmake)) {
-  $cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "cmake"
-  $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
-  New-Item -ItemType Directory $cmakeDistributionPath -Force
-  if ($IsWindows) {
-    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-x86_64.zip"
-    $cmakeExeExtension = ".exe"
-  }
-  elseif ($IsMacOS) {
-    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
-    $cmakeExeExtension = ""
-  }
-  elseif ($IsLinux) {
-    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-x86_64.tar.gz"
-    $cmakeExeExtension = ""
+$cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "cmake"
+$cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
+New-Item -ItemType Directory $cmakeDistributionPath -Force
+if ($IsWindows) {
+  $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
+  $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake.exe"
+}
+elseif ($IsMacOS) {
+  $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
+  $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "CMake.app", "Contents", "bin", "cmake"
+}
+elseif ($IsLinux) {
+  $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-${cmakeArchitecture}.tar.gz"
+  $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake"
+}
+else {
+  Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
+  exit 1
+}
+$archiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
+$archiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $archiveFileName
+if (-not (Test-Path $archiveFilePath)) {
+  Write-Output "Downloading ${cmakeUrl}"
+  Invoke-RestMethod -Uri $cmakeUrl -OutFile $archiveFilePath
+}
+if (-not (Get-ChildItem $cmakePathPattern)) {
+  if ($archiveFilePath.EndsWith(".zip")) {
+    Expand-Archive -Path $archiveFilePath -DestinationPath $cmakeDistributionPath -Force
   }
   else {
-    Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
-    exit 1
+    & tar xf $archiveFilePath -C $cmakeDistributionPath
   }
-  $archiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
-  $archiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $archiveFileName
-  if (-not (Test-Path $archiveFilePath)) {
-    Invoke-RestMethod -Uri $cmakeUrl -OutFile $archiveFilePath
-  }
-  $cmakePattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake${cmakeExeExtension}"
-  if (-not (Get-ChildItem $cmakePattern)) {
-    if ($archiveFilePath.EndsWith(".zip")) {
-      Expand-Archive -Path $archiveFilePath -DestinationPath $cmakeDistributionPath -Force
-    }
-    else {
-      & tar xf $archiveFilePath -C $cmakeDistributionPath
-    }
-  }
-  $cmake = (Get-ChildItem $cmakePattern)[0].FullName
 }
+$cmakePaths = Get-ChildItem $cmakePathPattern
+if (-not $cmakePaths) {
+  throw "Failed to setup local cmake: ${cmakePathPattern} not found"
+}
+$cmake = $cmakePaths[0].FullName
+
 Write-Output "Using CMake: $cmake"
 & $cmake --version
 
