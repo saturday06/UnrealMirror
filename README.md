@@ -9,4 +9,4 @@ Visual Studio Installer や、 Homebrew などを用いて cmake をインスト
 
 ## コマンドラインビルド
 
-PowerShell 7.4 以降をインストールし `./Tool/build.ps` を実行してください。
+PowerShell 7.4 以降をインストールし `./Tool/build.ps1` を実行してください。
