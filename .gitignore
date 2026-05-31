@@ -23,6 +23,7 @@
 /Plugins/VRM4U/ThirdParty/assimp/include/assimp/config.h
 /Plugins/VRM4U/ThirdParty/assimp/include/assimp/revision.h
 /Saved/
+/Tool/bazel/
 /Tool/cmake/
 /super-linter-output/
 .DS_Store

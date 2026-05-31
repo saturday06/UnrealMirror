@@ -15,6 +15,7 @@ $vsCmakeGenerator = "Visual Studio 17 2022"
 $vcVersion = "vc143"
 $osxDeploymentTarget = "14.0"
 $cmakeVersion = "4.3.3"
+$bazelVersion = "8.7.0"
 
 Write-Output "Target Platform: $TargetPlatform"
 Write-Output "Target Configuration: $TargetConfiguration"
@@ -39,7 +40,7 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
 
 & {
   try {
-    & (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "format.ps1")
+    & (Join-Path -Path $PSScriptRoot -ChildPath "format.ps1")
   }
   catch {
     Write-Output $_
@@ -58,22 +59,35 @@ else {
 
 $processArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
 switch ($processArchitecture) {
-  "X64" { $cmakeArchitecture = "x86_64" }
-  "Arm64" { $cmakeArchitecture = "arm64" }
+  "X64" {
+    $bazelArchitecture = "x86_64"
+    $cmakeArchitecture = "x86_64"
+  }
+  "Arm64" {
+    $bazelArchitecture = "arm64"
+    $cmakeArchitecture = "arm64"
+  }
   default { throw "Unsupported Process Architecture: ${processArchitecture}" }
 }
-$cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "cmake"
+
+$cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "cmake"
 $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
 New-Item -ItemType Directory $cmakeDistributionPath -Force
 if ($IsWindows) {
+  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-windows-${bazelArchitecture}.exe"
+  $bazelChmodPlusX = $false
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake.exe"
 }
 elseif ($IsMacOS) {
+  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-darwin-${bazelArchitecture}"
+  $bazelChmodPlusX = $true
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "CMake.app", "Contents", "bin", "cmake"
 }
 elseif ($IsLinux) {
+  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-linux-${bazelArchitecture}"
+  $bazelChmodPlusX = $true
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-${cmakeArchitecture}.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake"
 }
@@ -81,18 +95,33 @@ else {
   Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
   exit 1
 }
-$archiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
-$archiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $archiveFileName
-if (-not (Test-Path $archiveFilePath)) {
+
+$bazelFileName = Split-Path -Leaf ([System.Uri]::new($bazelUrl)).AbsolutePath
+$bazelFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "bazel"
+New-Item -ItemType Directory $bazelFolderPath -Force
+$bazel = Join-Path -Path $bazelFolderPath -ChildPath $bazelFileName
+if (-not (Test-Path $bazel)) {
+  Write-Output "Downloading ${bazelUrl}"
+  Invoke-RestMethod -Uri $bazelUrl -OutFile $bazel
+}
+if ($bazelChmodPlusX) {
+  & chmod +x $bazel
+}
+Write-Output "Using bazel: $bazel"
+& $bazel --version
+
+$cmakeArchiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
+$cmakeArchiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $cmakeArchiveFileName
+if (-not (Test-Path $cmakeArchiveFilePath)) {
   Write-Output "Downloading ${cmakeUrl}"
-  Invoke-RestMethod -Uri $cmakeUrl -OutFile $archiveFilePath
+  Invoke-RestMethod -Uri $cmakeUrl -OutFile $cmakeArchiveFilePath
 }
 if (-not (Get-ChildItem $cmakePathPattern)) {
-  if ($archiveFilePath.EndsWith(".zip")) {
-    Expand-Archive -Path $archiveFilePath -DestinationPath $cmakeDistributionPath -Force
+  if ($cmakeArchiveFilePath.EndsWith(".zip")) {
+    Expand-Archive -Path $cmakeArchiveFilePath -DestinationPath $cmakeDistributionPath -Force
   }
   else {
-    & tar xf $archiveFilePath -C $cmakeDistributionPath
+    & tar xf $cmakeArchiveFilePath -C $cmakeDistributionPath
   }
 }
 $cmakePaths = Get-ChildItem $cmakePathPattern
@@ -104,7 +133,7 @@ $cmake = $cmakePaths[0].FullName
 Write-Output "Using CMake: $cmake"
 & $cmake --version
 
-$assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "assimp"
+$assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "VRM4U" -AdditionalChildPath "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
   git -C $PSScriptRoot submodule update --init --recursive
 }
@@ -116,7 +145,7 @@ $releaseAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPa
 New-Item -ItemType Directory $releaseAssimpBuildFolderPath -Force
 
 $buildSharedLibs = $IsWindows ? "ON" : "OFF"
-$vrm4uAssimpFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..", "Plugins", "VRM4U", "ThirdParty", "assimp"
+$vrm4uAssimpFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Plugins", "VRM4U", "ThirdParty", "assimp"
 $macStaticLibPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimp.a"
 
 New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64") -Force

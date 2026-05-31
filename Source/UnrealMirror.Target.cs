@@ -21,7 +21,7 @@ public class UnrealMirrorTarget : TargetRules
             }
             string dotnetCommand =
                 "dotnet tool restore && dotnet tool run pwsh -- "
-                + " VRM4U/setup.ps1 -TargetPlatform \"$(TargetPlatform)\" -TargetConfiguration \"$(TargetConfiguration)\"";
+                + " setup.ps1 -TargetPlatform \"$(TargetPlatform)\" -TargetConfiguration \"$(TargetConfiguration)\"";
 
             return cdCommand + " && " + dotnetCommand;
         }
