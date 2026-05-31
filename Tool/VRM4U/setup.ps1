@@ -37,7 +37,7 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
 
 & {
   try {
-    & (Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath "format.ps1")
+    & (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "format.ps1")
   }
   catch {
     Write-Output $_

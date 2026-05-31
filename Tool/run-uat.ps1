@@ -21,7 +21,7 @@ if (-not $unrealEngineAssociation) {
 
 if ($IsWindows) {
   $registryPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\${unrealEngineAssociation}"
-  $registryValue = 'InstalledDirectory'
+  $registryValue = "InstalledDirectory"
 
   $unrealEngineRootPath = (Get-ItemProperty -Path $registryPath -Name $registryValue).$registryValue
   if (-not $unrealEngineRootPath) {
@@ -29,7 +29,7 @@ if ($IsWindows) {
     exit 1
   }
 
-  $runUatPath = Join-Path $unrealEngineRootPath 'Engine\Build\BatchFiles\RunUAT.bat'
+  $runUatPath = Join-Path $unrealEngineRootPath "Engine\Build\BatchFiles\RunUAT.bat"
 }
 elseif ($IsMacOS) {
   $runUatPath = "/Users/Shared/Epic Games/UE_${unrealEngineAssociation}/Engine/Build/BatchFiles/RunUAT.sh"

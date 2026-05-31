@@ -25,12 +25,12 @@ else {
   throw "Unsupported platform: $($PSVersionTable.Platform)"
 }
 
-$projectRootPath = Resolve-Path (Join-Path $PSScriptRoot '..')
-$projectPath = Join-Path $projectRootPath 'UnrealMirror.uproject'
+$projectRootPath = Resolve-Path (Join-Path $PSScriptRoot "..")
+$projectPath = Join-Path $projectRootPath "UnrealMirror.uproject"
 
 Push-Location $projectRootPath
 try {
-  & (Join-Path $PSScriptRoot 'run-uat.ps1') `
+  & (Join-Path $PSScriptRoot "run-uat.ps1") `
     BuildCookRun `
     -noP4 `
     "-platform=${TargetPlatform}" `

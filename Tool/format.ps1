@@ -32,13 +32,13 @@ if (-not (Test-Path $clangFormat)) {
 
 Push-Location $PSScriptRoot
 try {
-  Write-Output 'Formatting C/C++ files...'
+  Write-Output "Formatting C/C++ files..."
   Get-ChildItem ../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
     Write-Output "Formatting: $($_.FullName)"
     & $clangFormat -i $_.FullName
   }
 
-  Write-Output 'Formatting C# files...'
+  Write-Output "Formatting C# files..."
   & dotnet tool restore
   & dotnet tool run csharpier format ../Source
 }
