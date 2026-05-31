@@ -21,6 +21,8 @@ Write-Output "Target Configuration: $TargetConfiguration"
 
 $preferReleaseSetup = $true
 if ($TargetConfiguration -in @(
+    "Debug",
+    "Debug Editor",
     "DebugGame",
     "DebugGame Editor",
     "Development",
@@ -47,26 +49,44 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
 if ($IsWindows) {
   $cmakeGenerator = $vsCmakeGenerator
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-  if (-not (Test-Path $vswhere)) {
-    throw "vswhere.exe was not found: $vswhere"
+  if (Test-Path $vswhere) {
+    $vsInstallationPath = $null
+    try {
+      $vsInstallationPath = & $vswhere -version $vsVersionRange -property installationPath
+    }
+    catch [System.Management.Automation.NativeCommandExitException] {
+      Write-Output "Visual Studio was not found in registry: ${vswhere} -version ${vsVersionRange} -property installationPath"
+    }
+    if ($vsInstallationPath) {
+      $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+    }
   }
-  $vsInstallationPath = & $vswhere -version $vsVersionRange -property installationPath
-  if (-not $vsInstallationPath) {
-    throw "Visual Studio was not found"
-  }
-  $cmake = Join-Path -Path $vsInstallationPath -ChildPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
-}
-elseif ($IsMacOS) {
-  $cmakeGenerator = "Xcode"
-  $cmake = & zsh -lc "which cmake"
 }
 else {
-  $cmakeGenerator = "Unix Makefiles"
-  $cmake = & bash -lc "which cmake"
+  if ($IsMacOS) {
+    $cmakeGenerator = "Xcode"
+  }
+  else {
+    $cmakeGenerator = "Unix Makefiles"
+  }
+  try {
+    $cmake = & bash -lc "command -v cmake"
+  }
+  catch [System.Management.Automation.CommandNotFoundException, System.Management.Automation.NativeCommandExitException] {
+    Write-Output "cmake was not found in bash shell"
+  }
+  if (-not $cmake) {
+    try {
+      $cmake = & zsh -lc "command -v cmake"
+    }
+    catch [System.Management.Automation.CommandNotFoundException, System.Management.Automation.NativeCommandExitException] {
+      Write-Output "cmake was not found in zsh shell"
+    }
+  }
 }
 
 if (-not (Test-Path $cmake)) {
-  throw "cmake.exe was not found: $cmake"
+  $cmake = (Get-Command cmake).Source
 }
 
 $assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "assimp"
