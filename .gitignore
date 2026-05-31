@@ -25,6 +25,7 @@
 /Saved/
 /Tool/bazel/
 /Tool/cmake/
+/Tool/grpc/
 /super-linter-output/
 .DS_Store
 UpgradeLog.htm

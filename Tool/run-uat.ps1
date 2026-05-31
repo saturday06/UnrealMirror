@@ -32,14 +32,25 @@ if ($IsWindows) {
   $runUatPath = Join-Path $unrealEngineRootPath "Engine\Build\BatchFiles\RunUAT.bat"
 }
 elseif ($IsMacOS) {
-  $runUatPath = "/Users/Shared/Epic Games/UE_${unrealEngineAssociation}/Engine/Build/BatchFiles/RunUAT.sh"
+  $ueRoot = $env:UE_ROOT
+  if (-not ($ueRoot)) {
+    $ueRoot = "/Users/Shared/Epic Games/UE_${unrealEngineAssociation}"
+  }
+  $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
+}
+elseif ($Linux) {
+  $ueRoot = $env:UE_ROOT
+  if (-not ($ueRoot)) {
+    throw 'Please set the "UE_ROOT" environment variable'
+  }
+  $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
 }
 else {
   throw "Unsupported platform: $($PSVersionTable.Platform)"
 }
 
 if (-not (Test-Path -Path $runUatPath -PathType Leaf)) {
-  Write-Output "RunUAT was not found: $runUatPath"
+  Write-Output "RunUAT was not found: ${runUatPath}"
   exit 1
 }
 

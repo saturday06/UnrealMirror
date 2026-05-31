@@ -1,3 +1,4 @@
 [submodule "Tool/VRM4U/assimp"]
 	path = Tool/VRM4U/assimp
 	url = https://github.com/saturday06/assimp.git
+	shallow = true

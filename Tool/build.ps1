@@ -3,7 +3,7 @@
 #Requires -Version 7.4
 
 param(
-  [ValidateSet("Win64", "Mac")]
+  [ValidateSet("Android", "IOS", "Linux", "LinuxArm64", "Mac", "Win64")]
   [string]$TargetPlatform,
   [ValidateSet("Debug", "DebugGame", "Development", "Test", "Shipping")]
   [string]$TargetConfiguration = "Shipping"
@@ -21,6 +21,11 @@ if ($IsWindows) {
 elseif ($IsMacOS) {
   if (-not ($TargetPlatform)) {
     $TargetPlatform = "Mac"
+  }
+}
+elseif ($IsLinux) {
+  if (-not ($TargetPlatform)) {
+    $TargetPlatform = "Linux"
   }
 }
 else {

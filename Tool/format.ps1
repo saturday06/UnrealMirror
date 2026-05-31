@@ -16,7 +16,10 @@ if ($IsWindows) {
   if (Test-Path $vswhere) {
     $vsInstallationPath = $null
     try {
-      $vsInstallationPath = & $vswhere -version $vsVersionRange -property installationPath
+      $vsInstallationPath = & $vswhere `
+        -version $vsVersionRange `
+        -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang `
+        -property installationPath
     }
     catch [System.Management.Automation.NativeCommandExitException] {
       Write-Output "Visual Studio was not found in registry: ${vswhere} -version ${vsVersionRange} -property installationPath"

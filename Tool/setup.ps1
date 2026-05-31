@@ -13,9 +13,11 @@ Set-StrictMode -Version 3
 
 $vsCmakeGenerator = "Visual Studio 17 2022"
 $vcVersion = "vc143"
+$vsVersionRange = "[17.0,18.0)"
 $osxDeploymentTarget = "14.0"
 $cmakeVersion = "4.3.3"
 $bazelVersion = "8.7.0"
+$grpcVersion = "1.81.0"
 
 Write-Output "Target Platform: $TargetPlatform"
 Write-Output "Target Configuration: $TargetConfiguration"
@@ -78,6 +80,16 @@ if ($IsWindows) {
   $bazelChmodPlusX = $false
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake.exe"
+
+  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  if (-not (Test-Path $vswhere)) {
+    throw "Visual Studio was not found in registry: ${vswhere}"
+  }
+  $vsInstallationPath = & $vswhere `
+    -version $vsVersionRange `
+    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    -property installationPath
+  $env:BAZEL_VC = Join-Path $vsInstallationPath "VC"
 }
 elseif ($IsMacOS) {
   $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-darwin-${bazelArchitecture}"
@@ -110,6 +122,39 @@ if ($bazelChmodPlusX) {
 Write-Output "Using bazel: $bazel"
 & $bazel --version
 
+$grpcFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "grpc"
+New-Item -ItemType Directory $grpcFolderPath -Force
+if (-not (Test-Path (Join-Path -Path $grpcFolderPath -ChildPath ".git"))) {
+  git -C $grpcFolderPath init
+}
+try {
+  git -C $grpcFolderPath remote add origin https://github.com/grpc/grpc
+}
+catch [System.Management.Automation.NativeCommandExitException] {
+  Write-Output "Already added"
+}
+$grpcGitTag = "v${grpcVersion}"
+try {
+  git -C $grpcFolderPath rev-parse $grpcGitTag --
+}
+catch [System.Management.Automation.NativeCommandExitException] {
+  git -C $grpcFolderPath fetch --depth 1 origin "refs/tags/${grpcGitTag}:refs/tags/${grpcGitTag}"
+}
+git -C $grpcFolderPath reset --hard $grpcGitTag
+git -C $grpcFolderPath submodule update --init --recursive --depth 1
+Push-Location $grpcFolderPath
+try {
+  & $bazel `
+    build `
+    --macos_minimum_os $osxDeploymentTarget `
+    "//:grpc++" `
+    "//src/compiler:grpc_cpp_plugin" `
+    -c opt
+}
+finally {
+  Pop-Location
+}
+
 $cmakeArchiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
 $cmakeArchiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $cmakeArchiveFileName
 if (-not (Test-Path $cmakeArchiveFilePath)) {
@@ -117,13 +162,9 @@ if (-not (Test-Path $cmakeArchiveFilePath)) {
   Invoke-RestMethod -Uri $cmakeUrl -OutFile $cmakeArchiveFilePath
 }
 if (-not (Get-ChildItem $cmakePathPattern)) {
-  if ($cmakeArchiveFilePath.EndsWith(".zip")) {
-    Expand-Archive -Path $cmakeArchiveFilePath -DestinationPath $cmakeDistributionPath -Force
-  }
-  else {
-    & tar xf $cmakeArchiveFilePath -C $cmakeDistributionPath
-  }
+  & tar -xf $cmakeArchiveFilePath -C $cmakeDistributionPath
 }
+
 $cmakePaths = Get-ChildItem $cmakePathPattern
 if (-not $cmakePaths) {
   throw "Failed to setup local cmake: ${cmakePathPattern} not found"
@@ -135,7 +176,7 @@ Write-Output "Using CMake: $cmake"
 
 $assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "VRM4U" -AdditionalChildPath "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
-  git -C $PSScriptRoot submodule update --init --recursive
+  git -C $assimpSourceFolderPath submodule update --init --recursive --depth 1
 }
 
 $debugAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "Debug"
@@ -234,3 +275,14 @@ else {
   $preferedAssimpBuildFolderPath = $debugAssimpBuildFolderPath
 }
 Copy-Item (Join-Path -Path $preferedAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
+
+if ($IsMacOS) {
+  & {
+    $iosAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "iOS"
+    New-Item -ItemType Directory $iosAssimpBuildFolderPath -Force
+    Set-Location $iosAssimpBuildFolderPath
+    $cmakeBinPath = Split-Path $cmake -Parent
+    $env:PATH = $cmakeBinPath + ":" + $env:PATH
+    # & ../../port/iOS/build.sh --archs=arm64 --min-version=17.0
+  }
+}
