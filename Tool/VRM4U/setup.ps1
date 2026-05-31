@@ -86,7 +86,7 @@ else {
   }
 }
 
-if (-not (Test-Path $cmake)) {
+if (-not $cmake -or -not (Test-Path $cmake)) {
   $cmake = (Get-Command cmake).Source
 }
 
