@@ -15,6 +15,7 @@ $vsCmakeGenerator = "Visual Studio 17 2022"
 $vsVersionRange = "[17.0,18.0)"
 $vcVersion = "vc143"
 $osxDeploymentTarget = "14.0"
+$cmakeVersion = "4.3.3"
 
 Write-Output "Target Platform: $TargetPlatform"
 Write-Output "Target Configuration: $TargetConfiguration"
@@ -86,9 +87,51 @@ else {
   }
 }
 
-if (-not $cmake -or -not (Test-Path $cmake)) {
-  $cmake = (Get-Command cmake).Source
+if (-not $cmake) {
+  $cmakeCommand = Get-Command cmake -ErrorAction SilentlyContinue
+  if ($cmakeCommand) {
+    $cmake = $cmakeCommand.Source
+  }
 }
+
+if (-not $cmake -or -not (Test-Path $cmake)) {
+  $cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "cmake"
+  $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
+  New-Item -ItemType Directory $cmakeDistributionPath -Force
+  if ($IsWindows) {
+    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-x86_64.zip"
+    $cmakeExeExtension = ".exe"
+  }
+  elseif ($IsMacOS) {
+    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
+    $cmakeExeExtension = ""
+  }
+  elseif ($IsLinux) {
+    $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-x86_64.tar.gz"
+    $cmakeExeExtension = ""
+  }
+  else {
+    Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
+    exit 1
+  }
+  $archiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
+  $archiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $archiveFileName
+  if (-not (Test-Path $archiveFilePath)) {
+    Invoke-RestMethod -Uri $cmakeUrl -OutFile $archiveFilePath
+  }
+  $cmakePattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake${cmakeExeExtension}"
+  if (-not (Get-ChildItem $cmakePattern)) {
+    if ($archiveFilePath.EndsWith(".zip")) {
+      Expand-Archive -Path $archiveFilePath -DestinationPath $cmakeDistributionPath -Force
+    }
+    else {
+      & tar xf $archiveFilePath -C $cmakeDistributionPath
+    }
+  }
+  $cmake = (Get-ChildItem $cmakePattern)[0].FullName
+}
+Write-Output "Using CMake: $cmake"
+& $cmake --version
 
 $assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
