@@ -6,16 +6,8 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$scriptFolderPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repositoryRootPath = Resolve-Path (Join-Path $scriptFolderPath '..')
+$env:DOTNET_CLI_UI_LANGUAGE = "en"
 
-Write-Output 'Formatting C# files...'
-Set-Location $scriptFolderPath
-& dotnet tool restore
-& dotnet tool run csharpier format ../Source
-
-Write-Output 'Formatting C/C++ files...'
-Set-Location $repositoryRootPath
 if ($IsWindows) {
   $vsVersionRange = "[17.0,18.0)"
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -34,12 +26,22 @@ elseif ($IsMacOS) {
 else {
   $clangFormat = (Get-Command clang-format).Source
 }
-
 if (-not (Test-Path $clangFormat)) {
   throw "clang-format.exe was not found: $clangFormat"
 }
 
-Get-ChildItem -Path Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
-  Write-Output "Formatting: $($_.FullName)"
-  & $clangFormat -i $_.FullName
+Push-Location $PSScriptRoot
+try {
+  Write-Output 'Formatting C/C++ files...'
+  Get-ChildItem ../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
+    Write-Output "Formatting: $($_.FullName)"
+    & $clangFormat -i $_.FullName
+  }
+
+  Write-Output 'Formatting C# files...'
+  & dotnet tool restore
+  & dotnet tool run csharpier format ../Source
+}
+finally {
+  Pop-Location
 }

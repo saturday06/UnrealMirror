@@ -1,6 +1,12 @@
 #!/usr/bin/env pwsh
 # SPDX-License-Identifier: Apache-2.0
 #Requires -Version 7.4
+
+param(
+  [string]$TargetPlatform,
+  [string]$TargetConfiguration
+)
+
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
@@ -10,7 +16,34 @@ $vsVersionRange = "[17.0,18.0)"
 $vcVersion = "vc143"
 $osxDeploymentTarget = "14.0"
 
-$cmake = "cmake"
+Write-Output "Target Platform: $TargetPlatform"
+Write-Output "Target Configuration: $TargetConfiguration"
+
+$preferReleaseSetup = $true
+if ($TargetConfiguration -in @(
+    "DebugGame",
+    "DebugGame Editor",
+    "Development",
+    "Development Editor"
+  )) {
+  $preferReleaseSetup = $false
+}
+Write-Output "Prefer Release Setup: $preferReleaseSetup"
+
+Write-Output "Environment Variables:"
+Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
+  Write-Output "  $($_.Name)=$($_.Value)"
+}
+
+& {
+  try {
+    & (Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath "format.ps1")
+  }
+  catch {
+    Write-Output $_
+  }
+}
+
 if ($IsWindows) {
   $cmakeGenerator = $vsCmakeGenerator
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -25,11 +58,11 @@ if ($IsWindows) {
 }
 elseif ($IsMacOS) {
   $cmakeGenerator = "Xcode"
-  $cmake = (Get-Command cmake).Source
+  $cmake = & zsh -lc "which cmake"
 }
 else {
   $cmakeGenerator = "Unix Makefiles"
-  $cmake = (Get-Command cmake).Source
+  $cmake = & bash -lc "which cmake"
 }
 
 if (-not (Test-Path $cmake)) {
@@ -49,6 +82,7 @@ New-Item -ItemType Directory $releaseAssimpBuildFolderPath -Force
 
 $buildSharedLibs = $IsWindows ? "ON" : "OFF"
 $vrm4uAssimpFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..", "Plugins", "VRM4U", "ThirdParty", "assimp"
+$macStaticLibPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimp.a"
 
 New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64") -Force
 New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "x64", "Debug") -Force
@@ -81,10 +115,12 @@ if ($IsWindows) {
   }
 }
 elseif ($IsMacOS) {
-  $debugStaticLibPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimpd.a"
-  if (-not ($debugStaticLibPath)) {
-    Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Debug", "libassimpd.a") $debugStaticLibPath
+  if (-not ($preferReleaseSetup)) {
+    Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Debug", "libassimpd.a") $macStaticLibPath
   }
+}
+else {
+  Write-Output "Debug build is not supported on this platform: $($PSVersionTable.Platform)"
 }
 
 if (-not (Test-Path (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
@@ -115,14 +151,22 @@ if ($IsWindows) {
   }
 }
 elseif ($IsMacOS) {
-  $releaseStaticLibPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimp.a"
-  if (-not (Test-Path $releaseStaticLibPath)) {
-    Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Release", "libassimp.a") $releaseStaticLibPath
+  if ($preferReleaseSetup) {
+    Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Release", "libassimp.a") $macStaticLibPath
   }
+}
+else {
+  Write-Output "Release build is not supported on this platform: $($PSVersionTable.Platform)"
 }
 
 $vrm4uAssimpIncludeFolderPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "include" -AdditionalChildPath "assimp"
 Remove-Item $vrm4uAssimpIncludeFolderPath -Recurse -Force
 New-Item -ItemType Directory -Path $vrm4uAssimpIncludeFolderPath -Force
 Copy-Item (Join-Path -Path $assimpSourceFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
-Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
+if ($preferReleaseSetup) {
+  $preferedAssimpBuildFolderPath = $releaseAssimpBuildFolderPath
+}
+else {
+  $preferedAssimpBuildFolderPath = $debugAssimpBuildFolderPath
+}
+Copy-Item (Join-Path -Path $preferedAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force

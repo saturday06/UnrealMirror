@@ -5,6 +5,7 @@
 /*.sln
 /*.xcworkspace/
 /ArchivedBuilds/
+/Backup/
 /Binaries/
 /Build/
 /Content/Developers/
@@ -23,5 +24,5 @@
 /Plugins/VRM4U/ThirdParty/assimp/include/assimp/revision.h
 /Saved/
 /super-linter-output/
-
 .DS_Store
+UpgradeLog.htm

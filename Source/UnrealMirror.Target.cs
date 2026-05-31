@@ -10,22 +10,20 @@ public class UnrealMirrorTarget : TargetRules
     {
         get
         {
-            string shell;
+            string cdCommand;
             if (OperatingSystem.IsWindows())
             {
-                shell = "pwsh ";
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                // macOSのUnreal Editorはとても基本的な環境で動作しており、pwshを直接起動するのが難しい。
-                // zshをログインシェルとして起動することでパスをセットアップし、pwshを見つけられるようにする。
-                shell = "zsh -lc ";
+                cdCommand = "cd /d \"$(ProjectDir)/Tool\"";
             }
             else
             {
-                shell = "";
+                cdCommand = "cd \"$(ProjectDir)/Tool\"";
             }
-            return shell + "\"$(ProjectDir)/Tool/VRM4U/setup.ps1\"";
+            string dotnetCommand =
+                "dotnet tool restore && dotnet tool run pwsh -- "
+                + " VRM4U/setup.ps1 -TargetPlatform \"$(TargetPlatform)\" -TargetConfiguration \"$(TargetConfiguration)\"";
+
+            return cdCommand + " && " + dotnetCommand;
         }
     }
 
