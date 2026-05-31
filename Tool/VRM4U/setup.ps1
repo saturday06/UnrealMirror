@@ -46,6 +46,7 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
   }
 }
 
+$cmake = $null
 if ($IsWindows) {
   $cmakeGenerator = $vsCmakeGenerator
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
