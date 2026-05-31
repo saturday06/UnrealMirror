@@ -3,7 +3,9 @@
 #Requires -Version 7.4
 
 param(
+  [ValidateSet("Win64", "Mac")]
   [string]$TargetPlatform,
+  [ValidateSet("Debug", "DebugGame", "Development", "Test", "Shipping")]
   [string]$TargetConfiguration = "Shipping"
 )
 
