@@ -276,13 +276,13 @@ else {
 }
 Copy-Item (Join-Path -Path $preferedAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
 
-if ($IsMacOS) {
+if ($TargetPlatform -eq "IOS") {
   & {
     $iosAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "iOS"
     New-Item -ItemType Directory $iosAssimpBuildFolderPath -Force
     Set-Location $iosAssimpBuildFolderPath
     $cmakeBinPath = Split-Path $cmake -Parent
     $env:PATH = $cmakeBinPath + ":" + $env:PATH
-    # & ../../port/iOS/build.sh --archs=arm64 --min-version=17.0
+    & ../../port/iOS/build.sh --archs=arm64 --min-version=17.0
   }
 }
