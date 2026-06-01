@@ -78,6 +78,7 @@ New-Item -ItemType Directory $cmakeDistributionPath -Force
 if ($IsWindows) {
   $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-windows-${bazelArchitecture}.exe"
   $bazelChmodPlusX = $false
+  $bazelCopt = "/utf-8"
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake.exe"
 
@@ -94,12 +95,14 @@ if ($IsWindows) {
 elseif ($IsMacOS) {
   $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-darwin-${bazelArchitecture}"
   $bazelChmodPlusX = $true
+  $bazelCopt = ""
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "CMake.app", "Contents", "bin", "cmake"
 }
 elseif ($IsLinux) {
   $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-linux-${bazelArchitecture}"
   $bazelChmodPlusX = $true
+  $bazelCopt = ""
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-${cmakeArchitecture}.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake"
 }
@@ -107,6 +110,8 @@ else {
   Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
   exit 1
 }
+$cmakeCflags = "$bazelCopt"
+$cmakeCxxflags = "$bazelCopt"
 
 $bazelFileName = Split-Path -Leaf ([System.Uri]::new($bazelUrl)).AbsolutePath
 $bazelFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "bazel"
@@ -147,6 +152,7 @@ try {
   & $bazel `
     build `
     --macos_minimum_os $osxDeploymentTarget `
+    --copt $bazelCopt `
     "//:grpc++" `
     "//src/compiler:grpc_cpp_plugin" `
     -c opt
@@ -200,6 +206,8 @@ if (-not (Test-Path (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "CMa
     -DASSIMP_WARNINGS_AS_ERRORS=OFF `
     "-DBUILD_SHARED_LIBS=${buildSharedLibs}" `
     "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}" `
+    "-DCMAKE_C_FLAGS=${cmakeCflags}" `
+    "-DCMAKE_CXX_FLAGS=${cmakeCxxflags}" `
     -DCMAKE_BUILD_TYPE=Debug `
     -B $debugAssimpBuildFolderPath `
     -S $assimpSourceFolderPath
