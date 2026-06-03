@@ -25,11 +25,17 @@ elseif ($IsMacOS) {
 }
 elseif ($IsLinux) {
   if (-not ($TargetPlatform)) {
-    $TargetPlatform = "Linux"
+    if ([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture -eq "Arm64") {
+      $TargetPlatform = "LinuxArm64"
+    }
+    else {
+      $TargetPlatform = "Linux"
+    }
   }
 }
 else {
-  throw "Unsupported platform: $($PSVersionTable.Platform)"
+  $errorMessage = "Unsupported platform: $($PSVersionTable.Platform)"
+  throw $errorMessage
 }
 
 $projectRootPath = Resolve-Path (Join-Path $PSScriptRoot "..")

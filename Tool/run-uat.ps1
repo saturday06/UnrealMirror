@@ -41,12 +41,14 @@ elseif ($IsMacOS) {
 elseif ($Linux) {
   $ueRoot = $env:UE_ROOT
   if (-not ($ueRoot)) {
-    throw 'Please set the "UE_ROOT" environment variable'
+    $errorMessage = 'Please set the "UE_ROOT" environment variable'
+    throw $errorMessage
   }
   $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
 }
 else {
-  throw "Unsupported platform: $($PSVersionTable.Platform)"
+  $errorMessage = "Unsupported platform: $($PSVersionTable.Platform)"
+  throw $errorMessage
 }
 
 if (-not (Test-Path -Path $runUatPath -PathType Leaf)) {

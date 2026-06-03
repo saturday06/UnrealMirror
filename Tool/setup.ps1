@@ -13,10 +13,8 @@ Set-StrictMode -Version 3
 
 $vsCmakeGenerator = "Visual Studio 17 2022"
 $vcVersion = "vc143"
-$vsVersionRange = "[17.0,18.0)"
 $osxDeploymentTarget = "14.0"
 $cmakeVersion = "4.3.3"
-$bazelVersion = "8.7.0"
 $grpcVersion = "1.81.0"
 
 Write-Output "Target Platform: $TargetPlatform"
@@ -49,83 +47,121 @@ Get-ChildItem Env: | Sort-Object Name | ForEach-Object {
   }
 }
 
-if ($IsWindows) {
-  $cmakeGenerator = $vsCmakeGenerator
-}
-elseif ($IsMacOS) {
-  $cmakeGenerator = "Xcode"
-}
-else {
-  $cmakeGenerator = "Unix Makefiles"
-}
-
 $processArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
 switch ($processArchitecture) {
   "X64" {
-    $bazelArchitecture = "x86_64"
     $cmakeArchitecture = "x86_64"
+    $cmakeDefaultLinuxTargetPlatform = "Linux"
   }
   "Arm64" {
-    $bazelArchitecture = "arm64"
     $cmakeArchitecture = "arm64"
+    $cmakeDefaultLinuxTargetPlatform = "LinuxArm64"
   }
-  default { throw "Unsupported Process Architecture: ${processArchitecture}" }
+  default {
+    $errorMessage = "Unsupported Process Architecture: ${processArchitecture}"
+    throw $errorMessage
+  }
 }
 
 $cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "cmake"
 $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
 New-Item -ItemType Directory $cmakeDistributionPath -Force
+
 if ($IsWindows) {
-  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-windows-${bazelArchitecture}.exe"
-  $bazelChmodPlusX = $false
-  $bazelCopt = "/utf-8"
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake.exe"
-
-  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-  if (-not (Test-Path $vswhere)) {
-    throw "Visual Studio was not found in registry: ${vswhere}"
+  if (-not ($TargetPlatform)) {
+    $TargetPlatform = "Win64"
   }
-  $vsInstallationPath = & $vswhere `
-    -version $vsVersionRange `
-    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-    -property installationPath
-  $env:BAZEL_VC = Join-Path $vsInstallationPath "VC"
 }
 elseif ($IsMacOS) {
-  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-darwin-${bazelArchitecture}"
-  $bazelChmodPlusX = $true
-  $bazelCopt = ""
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-macos-universal.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "CMake.app", "Contents", "bin", "cmake"
+  if (-not ($TargetPlatform)) {
+    $TargetPlatform = "Mac"
+  }
 }
 elseif ($IsLinux) {
-  $bazelUrl = "https://github.com/bazelbuild/bazel/releases/download/${bazelVersion}/bazel-${bazelVersion}-linux-${bazelArchitecture}"
-  $bazelChmodPlusX = $true
-  $bazelCopt = ""
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-${cmakeArchitecture}.tar.gz"
   $cmakePathPattern = Join-Path -Path $cmakeDistributionPath -ChildPath "*" -AdditionalChildPath "bin", "cmake"
+  if (-not ($TargetPlatform)) {
+    $TargetPlatform = $cmakeDefaultLinuxTargetPlatform
+  }
 }
 else {
-  Write-Output "Unsupported platform: $($PSVersionTable.Platform)"
+  Write-Output "Unsupported host platform: $($PSVersionTable.Platform)"
   exit 1
 }
-$cmakeCflags = "$bazelCopt"
-$cmakeCxxflags = "$bazelCopt"
 
-$bazelFileName = Split-Path -Leaf ([System.Uri]::new($bazelUrl)).AbsolutePath
-$bazelFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "bazel"
-New-Item -ItemType Directory $bazelFolderPath -Force
-$bazel = Join-Path -Path $bazelFolderPath -ChildPath $bazelFileName
-if (-not (Test-Path $bazel)) {
-  Write-Output "Downloading ${bazelUrl}"
-  Invoke-RestMethod -Uri $bazelUrl -OutFile $bazel
+$cmakeBaseOptions = @()
+if ($TargetPlatform -eq "Android") {
+  $cmakeGenerator = "Unix Makefiles"
+  $cmakeCflags = ""
+  $cmakeCxxflags = ""
+  $assimpBuildSharedLibs = "OFF"
 }
-if ($bazelChmodPlusX) {
-  & chmod +x $bazel
+elseif ($TargetPlatform -eq "Win64" -and $IsWindows) {
+  $cmakeGenerator = $vsCmakeGenerator
+  $cmakeCflags = "/utf-8"
+  $cmakeCxxflags = "/utf-8"
+  $assimpBuildSharedLibs = "ON"
 }
-Write-Output "Using bazel: $bazel"
-& $bazel --version
+elseif ($TargetPlatform -eq "Mac" -and $IsMacOS) {
+  $cmakeGenerator = "Xcode"
+  $cmakeCflags = ""
+  $cmakeCxxflags = ""
+  $cmakeBaseOptions += @(
+    "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}"
+  )
+  $assimpBuildSharedLibs = "OFF"
+}
+elseif ($TargetPlatform -eq "Linux" -and $IsLinux) {
+  $cmakeGenerator = "Unix Makefiles"
+  $cmakeCflags = ""
+  $cmakeCxxflags = ""
+  $assimpBuildSharedLibs = "OFF"
+}
+elseif ($TargetPlatform -eq "LinuxArm64" -and $IsLinux) {
+  $cmakeGenerator = "Unix Makefiles"
+  $cmakeCflags = ""
+  $cmakeCxxflags = ""
+  $assimpBuildSharedLibs = "OFF"
+}
+elseif ($TargetPlatform -eq "IOS" -and $IsMacOS) {
+  $cmakeGenerator = "Xcode"
+  $cmakeCflags = ""
+  $cmakeCxxflags = ""
+  $assimpBuildSharedLibs = "OFF"
+}
+else {
+  Write-Output "Unsupported target platform: ${TargetPlatform} for $($PSVersionTable.Platform)"
+  exit 1
+}
+$cmakeBaseOptions += @(
+  "-G", $cmakeGenerator,
+  "-DCMAKE_C_FLAGS=${cmakeCflags}",
+  "-DCMAKE_CXX_FLAGS=${cmakeCxxflags}"
+)
+
+$cmakeArchiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
+$cmakeArchiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $cmakeArchiveFileName
+if (-not (Test-Path $cmakeArchiveFilePath)) {
+  Write-Output "Downloading ${cmakeUrl}"
+  Invoke-RestMethod -Uri $cmakeUrl -OutFile $cmakeArchiveFilePath
+}
+if (-not (Get-ChildItem $cmakePathPattern)) {
+  & tar -xf $cmakeArchiveFilePath -C $cmakeDistributionPath
+}
+
+$cmakePaths = Get-ChildItem $cmakePathPattern
+if (-not $cmakePaths) {
+  $errorMessage = "Failed to setup local cmake: ${cmakePathPattern} not found"
+  throw $errorMessage
+}
+$cmake = $cmakePaths[0].FullName
+
+Write-Output "Using CMake: $cmake"
+& $cmake --version
 
 $grpcFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "grpc"
 New-Item -ItemType Directory $grpcFolderPath -Force
@@ -147,38 +183,22 @@ catch [System.Management.Automation.NativeCommandExitException] {
 }
 git -C $grpcFolderPath reset --hard $grpcGitTag
 git -C $grpcFolderPath submodule update --init --recursive --depth 1
-Push-Location $grpcFolderPath
-try {
-  & $bazel `
-    build `
-    --macos_minimum_os $osxDeploymentTarget `
-    --copt $bazelCopt `
-    "//:grpc++" `
-    "//src/compiler:grpc_cpp_plugin" `
-    -c opt
-}
-finally {
-  Pop-Location
+
+$grpcBuildFolderPath = Join-Path -Path $grpcFolderPath -ChildPath ".build"
+New-Item -ItemType Directory $grpcBuildFolderPath -Force
+if (-not (Test-Path (Join-Path -Path $grpcBuildFolderPath -ChildPath "CMakeCache.txt"))) {
+  $grpcInstallPrefixPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "ThirdParty", "grpc"
+  & $cmake `
+    $cmakeBaseOptions `
+    -DgRPC_INSTALL=ON `
+    -DCMAKE_CXX_STANDARD=17 `
+    "-DCMAKE_INSTALL_PREFIX=${grpcInstallPrefixPath}" `
+    -DCMAKE_BUILD_TYPE=Release `
+    -B $grpcBuildFolderPath `
+    -S $grpcFolderPath
 }
 
-$cmakeArchiveFileName = Split-Path -Leaf ([System.Uri]::new($cmakeUrl)).AbsolutePath
-$cmakeArchiveFilePath = Join-Path -Path $cmakeFolderPath -ChildPath $cmakeArchiveFileName
-if (-not (Test-Path $cmakeArchiveFilePath)) {
-  Write-Output "Downloading ${cmakeUrl}"
-  Invoke-RestMethod -Uri $cmakeUrl -OutFile $cmakeArchiveFilePath
-}
-if (-not (Get-ChildItem $cmakePathPattern)) {
-  & tar -xf $cmakeArchiveFilePath -C $cmakeDistributionPath
-}
-
-$cmakePaths = Get-ChildItem $cmakePathPattern
-if (-not $cmakePaths) {
-  throw "Failed to setup local cmake: ${cmakePathPattern} not found"
-}
-$cmake = $cmakePaths[0].FullName
-
-Write-Output "Using CMake: $cmake"
-& $cmake --version
+& $cmake --build $grpcBuildFolderPath --config Release --target install --parallel 4
 
 $assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "VRM4U" -AdditionalChildPath "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
@@ -191,7 +211,6 @@ New-Item -ItemType Directory $debugAssimpBuildFolderPath -Force
 $releaseAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "Release"
 New-Item -ItemType Directory $releaseAssimpBuildFolderPath -Force
 
-$buildSharedLibs = $IsWindows ? "ON" : "OFF"
 $vrm4uAssimpFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Plugins", "VRM4U", "ThirdParty", "assimp"
 $macStaticLibPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "lib" -AdditionalChildPath "Mac", "libassimp.a"
 
@@ -201,19 +220,16 @@ New-Item -ItemType Directory (Join-Path -Path $vrm4uAssimpFolderPath -ChildPath 
 
 if (-not (Test-Path (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
   & $cmake `
-    -G $cmakeGenerator `
+    $cmakeBaseOptions `
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
     -DASSIMP_WARNINGS_AS_ERRORS=OFF `
-    "-DBUILD_SHARED_LIBS=${buildSharedLibs}" `
-    "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}" `
-    "-DCMAKE_C_FLAGS=${cmakeCflags}" `
-    "-DCMAKE_CXX_FLAGS=${cmakeCxxflags}" `
+    "-DBUILD_SHARED_LIBS=${assimpBuildSharedLibs}" `
     -DCMAKE_BUILD_TYPE=Debug `
     -B $debugAssimpBuildFolderPath `
     -S $assimpSourceFolderPath
 }
-& $cmake --build $debugAssimpBuildFolderPath --config Debug
-if ($IsWindows) {
+& $cmake --build $debugAssimpBuildFolderPath --config Debug --parallel 4
+if ($TargetPlatform -eq "Win64") {
   $debugDllPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64", "assimp-${vcVersion}-mtd.dll"
   if (-not (Test-Path $debugDllPath)) {
     Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Debug", "assimp-${vcVersion}-mtd.dll") $debugDllPath
@@ -227,7 +243,7 @@ if ($IsWindows) {
     Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Debug", "assimp-${vcVersion}-mtd.lib") $debugLibPath
   }
 }
-elseif ($IsMacOS) {
+elseif ($TargetPlatform -eq "Mac") {
   if (-not ($preferReleaseSetup)) {
     Copy-Item (Join-Path -Path $debugAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Debug", "libassimpd.a") $macStaticLibPath
   }
@@ -238,18 +254,17 @@ else {
 
 if (-not (Test-Path (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
   & $cmake `
-    -G $cmakeGenerator `
+    $cmakeBaseOptions `
     -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF `
     -DASSIMP_WARNINGS_AS_ERRORS=OFF `
-    "-DBUILD_SHARED_LIBS=${buildSharedLibs}" `
-    "-DCMAKE_OSX_DEPLOYMENT_TARGET=${osxDeploymentTarget}" `
+    "-DBUILD_SHARED_LIBS=${assimpBuildSharedLibs}" `
     -DCMAKE_BUILD_TYPE=Release `
     -B $releaseAssimpBuildFolderPath `
     -S $assimpSourceFolderPath
 }
-& $cmake --build $releaseAssimpBuildFolderPath --config Release
+& $cmake --build $releaseAssimpBuildFolderPath --config Release --parallel 4
 
-if ($IsWindows) {
+if ($TargetPlatform -eq "Win64") {
   $releaseDllPath = Join-Path -Path $vrm4uAssimpFolderPath -ChildPath "bin" -AdditionalChildPath "x64", "assimp-${vcVersion}-mt.dll"
   if (-not (Test-Path $releaseDllPath)) {
     Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "bin" -AdditionalChildPath "Release", "assimp-${vcVersion}-mt.dll") $releaseDllPath
@@ -263,7 +278,7 @@ if ($IsWindows) {
     Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Release", "assimp-${vcVersion}-mt.lib") $releaseLibPath
   }
 }
-elseif ($IsMacOS) {
+elseif ($TargetPlatform -eq "Mac") {
   if ($preferReleaseSetup) {
     Copy-Item (Join-Path -Path $releaseAssimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "Release", "libassimp.a") $macStaticLibPath
   }
@@ -283,14 +298,3 @@ else {
   $preferedAssimpBuildFolderPath = $debugAssimpBuildFolderPath
 }
 Copy-Item (Join-Path -Path $preferedAssimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
-
-if ($TargetPlatform -eq "IOS") {
-  & {
-    $iosAssimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath "iOS"
-    New-Item -ItemType Directory $iosAssimpBuildFolderPath -Force
-    Set-Location $iosAssimpBuildFolderPath
-    $cmakeBinPath = Split-Path $cmake -Parent
-    $env:PATH = $cmakeBinPath + ":" + $env:PATH
-    & ../../port/iOS/build.sh --archs=arm64 --min-version=17.0
-  }
-}
