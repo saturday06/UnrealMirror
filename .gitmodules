@@ -2,3 +2,7 @@
 	path = Tool/VRM4U/assimp
 	url = https://github.com/saturday06/assimp.git
 	shallow = true
+[submodule "Tool/ios-cmake"]
+	path = Tool/ios-cmake
+	url = https://github.com/leetal/ios-cmake.git
+	shallow = true
