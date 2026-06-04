@@ -26,6 +26,7 @@
 /Tool/bazel/
 /Tool/cmake/
 /Tool/grpc/
+/Tool/unreal-mirror-cli/target/
 /super-linter-output/
 .DS_Store
 UpgradeLog.htm

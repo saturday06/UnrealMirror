@@ -163,43 +163,6 @@ $cmake = $cmakePaths[0].FullName
 Write-Output "Using CMake: $cmake"
 & $cmake --version
 
-$grpcFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "grpc"
-New-Item -ItemType Directory $grpcFolderPath -Force
-if (-not (Test-Path (Join-Path -Path $grpcFolderPath -ChildPath ".git"))) {
-  git -C $grpcFolderPath init
-}
-try {
-  git -C $grpcFolderPath remote add origin https://github.com/grpc/grpc
-}
-catch [System.Management.Automation.NativeCommandExitException] {
-  Write-Output "Already added"
-}
-$grpcGitTag = "v${grpcVersion}"
-try {
-  git -C $grpcFolderPath rev-parse $grpcGitTag --
-}
-catch [System.Management.Automation.NativeCommandExitException] {
-  git -C $grpcFolderPath fetch --depth 1 origin "refs/tags/${grpcGitTag}:refs/tags/${grpcGitTag}"
-}
-git -C $grpcFolderPath reset --hard $grpcGitTag
-git -C $grpcFolderPath submodule update --init --recursive --depth 1
-
-$grpcBuildFolderPath = Join-Path -Path $grpcFolderPath -ChildPath ".build"
-New-Item -ItemType Directory $grpcBuildFolderPath -Force
-if (-not (Test-Path (Join-Path -Path $grpcBuildFolderPath -ChildPath "CMakeCache.txt"))) {
-  $grpcInstallPrefixPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "ThirdParty", "grpc"
-  & $cmake `
-    $cmakeBaseOptions `
-    -DgRPC_INSTALL=ON `
-    -DCMAKE_CXX_STANDARD=17 `
-    "-DCMAKE_INSTALL_PREFIX=${grpcInstallPrefixPath}" `
-    -DCMAKE_BUILD_TYPE=Release `
-    -B $grpcBuildFolderPath `
-    -S $grpcFolderPath
-}
-
-& $cmake --build $grpcBuildFolderPath --config Release --target install --parallel 4
-
 $assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "VRM4U" -AdditionalChildPath "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
   git -C $assimpSourceFolderPath submodule update --init --recursive --depth 1
