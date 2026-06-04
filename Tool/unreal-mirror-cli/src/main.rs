@@ -40,14 +40,16 @@ enum Command {
         #[arg(value_name = "PNG_PATH")]
         path: PathBuf,
     },
+    Shutdown,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let (command, path) = match cli.command {
-        Command::LoadVrm { path } => ("load-vrm-model", path),
-        Command::LoadAnimation { path } => ("load-vrm-animation", path),
-        Command::Screenshot { path } => ("capture-png-screenshot", path),
+        Command::LoadVrm { path } => ("load-vrm-model", Some(path)),
+        Command::LoadAnimation { path } => ("load-vrm-animation", Some(path)),
+        Command::Screenshot { path } => ("capture-png-screenshot", Some(path)),
+        Command::Shutdown => ("shutdown", None),
     };
 
     let message = send_command(command, path, cli.timeout_ms)?;
@@ -55,12 +57,15 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn send_command(command: &str, path: PathBuf, timeout_ms: u32) -> Result<String> {
+fn send_command(command: &str, path: Option<PathBuf>, timeout_ms: u32) -> Result<String> {
     let path = path
-        .canonicalize()
-        .unwrap_or(path)
-        .to_string_lossy()
-        .into_owned();
+        .map(|path| {
+            path.canonicalize()
+                .unwrap_or(path)
+                .to_string_lossy()
+                .into_owned()
+        })
+        .unwrap_or_default();
     let command = std::ffi::CString::new(command).context("command contains NUL byte")?;
     let path = std::ffi::CString::new(path).context("path contains NUL byte")?;
     let mut response = vec![0_i8; RESPONSE_SIZE];

@@ -9,11 +9,49 @@ use std::{
 use std::os::windows::process::CommandExt;
 
 const APP_START_TIMEOUT: Duration = Duration::from_secs(60);
+const APP_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(15);
 const CLI_TIMEOUT_MS: &str = "5000";
 
 struct UnrealMirrorApp {
     app_root: PathBuf,
     child: Child,
+}
+
+impl UnrealMirrorApp {
+    fn request_shutdown_and_wait(&mut self) -> anyhow::Result<()> {
+        run_cli_without_path("shutdown")?;
+        self.wait_for_exit(APP_SHUTDOWN_TIMEOUT)
+    }
+
+    fn wait_for_exit(&mut self, timeout: Duration) -> anyhow::Result<()> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            if !self.is_running()? {
+                return Ok(());
+            }
+            if Instant::now() >= deadline {
+                return Err(anyhow::anyhow!(
+                    "UnrealMirror app did not exit within {} seconds after shutdown command",
+                    timeout.as_secs()
+                ));
+            }
+            thread::sleep(Duration::from_millis(250));
+        }
+    }
+
+    fn is_running(&mut self) -> anyhow::Result<bool> {
+        let child_running = self.child.try_wait()?.is_none();
+
+        #[cfg(windows)]
+        {
+            Ok(child_running || windows_app_processes_running(&self.app_root)?)
+        }
+
+        #[cfg(not(windows))]
+        {
+            Ok(child_running)
+        }
+    }
 }
 
 impl Drop for UnrealMirrorApp {
@@ -129,10 +167,53 @@ fn terminate_windows_app_processes(app_root: &Path, root_pid: u32) {
         .status();
 }
 
+#[cfg(windows)]
+fn windows_app_processes_running(app_root: &Path) -> anyhow::Result<bool> {
+    let app_root = app_root.to_string_lossy().replace('\'', "''");
+    let script = format!(
+        "$root = [IO.Path]::GetFullPath('{app_root}').TrimEnd('\\') + '\\'; \
+         $process = Get-CimInstance Win32_Process | \
+         Where-Object {{ $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) }} | \
+         Select-Object -First 1; \
+         if ($process) {{ '1' }} else {{ '0' }}"
+    );
+
+    let output = Command::new("pwsh")
+        .args(["-NoProfile", "-Command", &script])
+        .stdin(Stdio::null())
+        .output()?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "failed to inspect UnrealMirror app processes\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim() == "1")
+}
+
 fn run_cli(command: &str, path: &Path) -> anyhow::Result<()> {
     let output = Command::new(env!("CARGO_BIN_EXE_unreal-mirror-cli"))
         .args(["--timeout-ms", CLI_TIMEOUT_MS, command])
         .arg(path)
+        .output()?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "CLI command failed: {command}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ))
+    }
+}
+
+fn run_cli_without_path(command: &str) -> anyhow::Result<()> {
+    let output = Command::new(env!("CARGO_BIN_EXE_unreal-mirror-cli"))
+        .args(["--timeout-ms", CLI_TIMEOUT_MS, command])
         .output()?;
 
     if output.status.success() {
@@ -210,7 +291,7 @@ fn unreal_ipc_server_accepts_test_data_paths() {
 #[test]
 #[ignore = "requires packaged UnrealMirror app; set UNREAL_MIRROR_APP_EXE or run Tool/build.ps1 first"]
 fn packaged_unreal_app_accepts_ipc_commands() -> anyhow::Result<()> {
-    let _app = start_unreal_mirror_app()?;
+    let mut app = start_unreal_mirror_app()?;
     wait_for_ipc_server()?;
 
     run_cli("load-animation", &resource_path("vrma/nop.vrma"))?;
@@ -224,5 +305,6 @@ fn packaged_unreal_app_accepts_ipc_commands() -> anyhow::Result<()> {
     assert_eq!(actual_png, expected_png);
 
     let _ = std::fs::remove_file(output_png);
+    app.request_shutdown_and_wait()?;
     Ok(())
 }

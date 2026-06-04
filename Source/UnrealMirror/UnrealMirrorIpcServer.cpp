@@ -2,7 +2,9 @@
 
 #include "UnrealMirrorIpcServer.h"
 
+#include "Async/Async.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformMisc.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
@@ -202,6 +204,11 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
   }
 
   if (Command == "shutdown") {
+    const FString Message = TEXT("Shutdown requested.");
+    UE_LOG(LogUnrealMirrorIpc, Display, TEXT("%s"), *Message);
+    SendReply(ReplyQueueName, true, Message);
+    AsyncTask(ENamedThreads::GameThread,
+              []() { FPlatformMisc::RequestExit(false); });
     return;
   }
 
