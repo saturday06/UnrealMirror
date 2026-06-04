@@ -4,8 +4,10 @@
 
 #include "Async/Async.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
@@ -50,15 +52,27 @@ AUnrealMirrorRuntimeActor::AUnrealMirrorRuntimeActor() {
   KeyLightComponent =
       CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("KeyLight"));
   KeyLightComponent->SetupAttachment(SceneRoot);
-  KeyLightComponent->SetIntensity(3.0f);
-  KeyLightComponent->SetRelativeRotation(FRotator(-45.0f, -35.0f, 0.0f));
+  KeyLightComponent->SetIntensity(18.0f);
+  KeyLightComponent->SetRelativeRotation(FRotator(-35.0f, -30.0f, 0.0f));
+
+  FillLightComponent =
+      CreateDefaultSubobject<UPointLightComponent>(TEXT("FillLight"));
+  FillLightComponent->SetupAttachment(SceneRoot);
+  FillLightComponent->SetIntensity(8000.0f);
+  FillLightComponent->SetAttenuationRadius(900.0f);
+  FillLightComponent->SetRelativeLocation(FVector(-160.0f, -220.0f, 220.0f));
+
+  SkyLightComponent =
+      CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLight"));
+  SkyLightComponent->SetupAttachment(SceneRoot);
+  SkyLightComponent->SetIntensity(3.5f);
 }
 
 bool AUnrealMirrorRuntimeActor::LoadVrmModel(const FString &Path,
                                              FString &OutMessage) {
   FImportOptionData ImportOptions;
   ImportOptions.init();
-  ImportOptions.MaterialType = EVRMImportMaterialType::VRMIMT_Unlit;
+  ImportOptions.MaterialType = EVRMImportMaterialType::VRMIMT_MToon;
 
   UVrmAssetListObject *LoadTemplate = NewObject<UVrmAssetListObject>(this);
   UVrmAssetListObject *LoadedAsset = nullptr;
@@ -126,17 +140,20 @@ void AUnrealMirrorRuntimeActor::CapturePngScreenshotAsync(
           FPlatformProcess::Sleep(0.1f);
           AsyncTask(ENamedThreads::GameThread,
                     [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
-        AUnrealMirrorRuntimeActor *Actor = WeakThis.Get();
-        if (Actor == nullptr) {
-          Completion(false, TEXT("Runtime actor is no longer available."));
-          return;
-        }
-        FString Message;
-        UE_LOG(LogUnrealMirrorRuntime, Display,
-               TEXT("PNG screenshot readback started: %s"), *Path);
-        const bool bOk = Actor->WriteRenderTargetPng(Path, Message);
-        Completion(bOk, Message);
-      });
+                      AUnrealMirrorRuntimeActor *Actor = WeakThis.Get();
+                      if (Actor == nullptr) {
+                        Completion(false,
+                                   TEXT("Runtime actor is no longer available."));
+                        return;
+                      }
+                      FString Message;
+                      UE_LOG(LogUnrealMirrorRuntime, Display,
+                             TEXT("PNG screenshot readback started: %s"),
+                             *Path);
+                      const bool bOk =
+                          Actor->WriteRenderTargetPng(Path, Message);
+                      Completion(bOk, Message);
+                    });
         });
 }
 
@@ -193,7 +210,7 @@ void AUnrealMirrorRuntimeActor::FrameLoadedModel() {
 void AUnrealMirrorRuntimeActor::EnsureRenderTarget() {
   if (RenderTarget == nullptr) {
     RenderTarget = NewObject<UTextureRenderTarget2D>(this);
-    RenderTarget->ClearColor = FLinearColor(0.02f, 0.02f, 0.025f, 1.0f);
+    RenderTarget->ClearColor = FLinearColor(0.18f, 0.18f, 0.2f, 1.0f);
     RenderTarget->RenderTargetFormat = RTF_RGBA8;
     RenderTarget->InitAutoFormat(CaptureWidth, CaptureHeight);
     RenderTarget->UpdateResourceImmediate(true);

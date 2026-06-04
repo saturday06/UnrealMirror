@@ -8,8 +8,10 @@
 #include "UnrealMirrorRuntimeActor.generated.h"
 
 class UDirectionalLightComponent;
+class UPointLightComponent;
 class USceneCaptureComponent2D;
 class USceneComponent;
+class USkyLightComponent;
 class USkeletalMeshComponent;
 class UTextureRenderTarget2D;
 class UVrmAssetListObject;
@@ -43,6 +45,12 @@ private:
 
   UPROPERTY()
   TObjectPtr<UDirectionalLightComponent> KeyLightComponent;
+
+  UPROPERTY()
+  TObjectPtr<UPointLightComponent> FillLightComponent;
+
+  UPROPERTY()
+  TObjectPtr<USkyLightComponent> SkyLightComponent;
 
   UPROPERTY()
   TObjectPtr<UTextureRenderTarget2D> RenderTarget;
