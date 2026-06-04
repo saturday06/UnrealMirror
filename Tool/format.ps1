@@ -9,8 +9,6 @@ Set-StrictMode -Version 3
 $config = Import-PowerShellDataFile (Join-Path -Path $PSScriptRoot -ChildPath "config.psd1")
 $vsVersionRange = $config.VsVersionRange
 
-$env:DOTNET_CLI_UI_LANGUAGE = "en"
-
 $clangFormat = $null
 if ($IsWindows) {
   $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"

@@ -11,6 +11,9 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
+$env:DOTNET_CLI_UI_LANGUAGE = "en"
+$env:VSLANG = "1033"
+
 $config = Import-PowerShellDataFile (Join-Path -Path $PSScriptRoot -ChildPath "config.psd1")
 $vsCmakeGenerator = $config.VsCmakeGenerator
 $vcVersion = $config.VcVersion
