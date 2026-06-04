@@ -18,7 +18,7 @@ if ($IsWindows) {
     $vsInstallationPath = $null
     try {
       $vsInstallationPath = & $vswhere `
-        -version $config.VsCmakeGenerator `
+        -version $vsVersionRange `
         -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang `
         -property installationPath
     }
