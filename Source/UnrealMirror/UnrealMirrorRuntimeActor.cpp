@@ -7,8 +7,8 @@
 #include "Components/PointLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneComponent.h"
-#include "Components/SkyLightComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
 #include "LoaderBPFunctionLibrary.h"
@@ -79,7 +79,8 @@ bool AUnrealMirrorRuntimeActor::LoadVrmModel(const FString &Path,
   const bool bLoaded = ULoaderBPFunctionLibrary::LoadVRMFile(
       LoadTemplate, LoadedAsset, Path, ImportOptions);
 
-  if (!bLoaded || LoadedAsset == nullptr || LoadedAsset->SkeletalMesh == nullptr) {
+  if (!bLoaded || LoadedAsset == nullptr ||
+      LoadedAsset->SkeletalMesh == nullptr) {
     OutMessage = FString::Printf(TEXT("Failed to load VRM model: %s"), *Path);
     return false;
   }
@@ -99,8 +100,7 @@ bool AUnrealMirrorRuntimeActor::LoadVrmModel(const FString &Path,
 
 bool AUnrealMirrorRuntimeActor::LoadVrmAnimation(const FString &Path,
                                                  FString &OutMessage) {
-  OutMessage =
-      FString::Printf(TEXT("VRM animation path accepted: %s"), *Path);
+  OutMessage = FString::Printf(TEXT("VRM animation path accepted: %s"), *Path);
   UE_LOG(LogUnrealMirrorRuntime, Display, TEXT("%s"), *OutMessage);
   return true;
 }
@@ -138,22 +138,21 @@ void AUnrealMirrorRuntimeActor::CapturePngScreenshotAsync(
   Async(EAsyncExecution::ThreadPool,
         [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
           FPlatformProcess::Sleep(0.1f);
-          AsyncTask(ENamedThreads::GameThread,
-                    [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
-                      AUnrealMirrorRuntimeActor *Actor = WeakThis.Get();
-                      if (Actor == nullptr) {
-                        Completion(false,
-                                   TEXT("Runtime actor is no longer available."));
-                        return;
-                      }
-                      FString Message;
-                      UE_LOG(LogUnrealMirrorRuntime, Display,
-                             TEXT("PNG screenshot readback started: %s"),
-                             *Path);
-                      const bool bOk =
-                          Actor->WriteRenderTargetPng(Path, Message);
-                      Completion(bOk, Message);
-                    });
+          AsyncTask(
+              ENamedThreads::GameThread,
+              [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
+                AUnrealMirrorRuntimeActor *Actor = WeakThis.Get();
+                if (Actor == nullptr) {
+                  Completion(false,
+                             TEXT("Runtime actor is no longer available."));
+                  return;
+                }
+                FString Message;
+                UE_LOG(LogUnrealMirrorRuntime, Display,
+                       TEXT("PNG screenshot readback started: %s"), *Path);
+                const bool bOk = Actor->WriteRenderTargetPng(Path, Message);
+                Completion(bOk, Message);
+              });
         });
 }
 

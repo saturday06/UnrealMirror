@@ -7,7 +7,6 @@
 #include "HAL/PlatformMisc.h"
 #include "Misc/Paths.h"
 #include "UnrealMirrorRuntimeActor.h"
-
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -59,7 +58,8 @@ bool ReadProtocolField(const std::string &Message, size_t &Offset,
 
   const std::string LengthText = Message.substr(Offset, LengthEnd - Offset);
   char *EndPtr = nullptr;
-  const unsigned long FieldLength = std::strtoul(LengthText.c_str(), &EndPtr, 10);
+  const unsigned long FieldLength =
+      std::strtoul(LengthText.c_str(), &EndPtr, 10);
   if (EndPtr == nullptr || *EndPtr != '\0') {
     return false;
   }
@@ -95,16 +95,18 @@ FString DecodeUtf8(const std::string &Value) {
   return FString(UTF8_TO_TCHAR(Value.c_str()));
 }
 
-FString ValidateReadableFile(const FString &Path, const TCHAR *ExpectedExtension) {
+FString ValidateReadableFile(const FString &Path,
+                             const TCHAR *ExpectedExtension) {
   if (Path.IsEmpty()) {
     return TEXT("Path is empty.");
   }
   if (!FPaths::FileExists(Path)) {
     return FString::Printf(TEXT("File does not exist: %s"), *Path);
   }
-  if (!FPaths::GetExtension(Path, true).Equals(ExpectedExtension,
-                                               ESearchCase::IgnoreCase)) {
-    return FString::Printf(TEXT("Expected %s file: %s"), ExpectedExtension, *Path);
+  if (!FPaths::GetExtension(Path, true)
+           .Equals(ExpectedExtension, ESearchCase::IgnoreCase)) {
+    return FString::Printf(TEXT("Expected %s file: %s"), ExpectedExtension,
+                           *Path);
   }
   return FString();
 }
@@ -113,8 +115,8 @@ FString ValidateWritablePngPath(const FString &Path) {
   if (Path.IsEmpty()) {
     return TEXT("Path is empty.");
   }
-  if (!FPaths::GetExtension(Path, true).Equals(TEXT(".png"),
-                                               ESearchCase::IgnoreCase)) {
+  if (!FPaths::GetExtension(Path, true)
+           .Equals(TEXT(".png"), ESearchCase::IgnoreCase)) {
     return FString::Printf(TEXT("Expected .png output path: %s"), *Path);
   }
 
@@ -134,9 +136,8 @@ UWorld *FindGameWorld() {
 
   for (const FWorldContext &Context : GEngine->GetWorldContexts()) {
     UWorld *World = Context.World();
-    if (World != nullptr &&
-        (World->WorldType == EWorldType::Game ||
-         World->WorldType == EWorldType::PIE)) {
+    if (World != nullptr && (World->WorldType == EWorldType::Game ||
+                             World->WorldType == EWorldType::PIE)) {
       return World;
     }
   }
@@ -162,8 +163,7 @@ void FUnrealMirrorIpcServer::Start() {
   WorkerThread = MakeUnique<std::thread>(&FUnrealMirrorIpcServer::Run, this);
 
   UE_LOG(LogUnrealMirrorIpc, Display,
-         TEXT("UnrealMirror IPC server started: %s"),
-         *GetQueueName());
+         TEXT("UnrealMirror IPC server started: %s"), *GetQueueName());
 }
 
 void FUnrealMirrorIpcServer::Stop() {
@@ -212,7 +212,8 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
   std::string Command;
   std::string PathUtf8;
   if (!ParseRequest(Request, ReplyQueueName, Command, PathUtf8)) {
-    UE_LOG(LogUnrealMirrorIpc, Warning, TEXT("Ignoring malformed IPC request."));
+    UE_LOG(LogUnrealMirrorIpc, Warning,
+           TEXT("Ignoring malformed IPC request."));
     return;
   }
 
@@ -241,11 +242,11 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
     FEvent *DoneEvent =
         FPlatformProcess::GetSynchEventFromPool(/*bIsManualReset=*/false);
     FCommandResult LocalResult;
-    AsyncTask(ENamedThreads::GameThread, [&LocalResult, DoneEvent,
-                                          Function = MoveTemp(Function)]() {
-      LocalResult = Function();
-      DoneEvent->Trigger();
-    });
+    AsyncTask(ENamedThreads::GameThread,
+              [&LocalResult, DoneEvent, Function = MoveTemp(Function)]() {
+                LocalResult = Function();
+                DoneEvent->Trigger();
+              });
     DoneEvent->Wait();
     FPlatformProcess::ReturnSynchEventToPool(DoneEvent);
     return LocalResult;
@@ -336,8 +337,8 @@ void FUnrealMirrorIpcServer::SendReply(const std::string &ReplyQueueName,
   }
 
   try {
-    boost::interprocess::message_queue ReplyQueue(boost::interprocess::open_only,
-                                                  ReplyQueueName.c_str());
+    boost::interprocess::message_queue ReplyQueue(
+        boost::interprocess::open_only, ReplyQueueName.c_str());
     const std::string MessageUtf8 = TCHAR_TO_UTF8(*Message);
     const std::string Reply = std::string(bOk ? "OK\n" : "ERR\n") + MessageUtf8;
     ReplyQueue.send(Reply.data(), Reply.size(), 0);

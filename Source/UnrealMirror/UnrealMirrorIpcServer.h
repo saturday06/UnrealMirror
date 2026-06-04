@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include <atomic>
 #include <string>
 #include <thread>
