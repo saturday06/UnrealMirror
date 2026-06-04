@@ -10,7 +10,7 @@
 #include "ImageUtils.h"
 #include "LoaderBPFunctionLibrary.h"
 #include "Misc/FileHelper.h"
-#include "Serialization/BufferArchive.h"
+#include "UnrealClient.h"
 #include "VrmAssetListObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealMirrorRuntime, Log, All);
@@ -97,15 +97,34 @@ bool AUnrealMirrorRuntimeActor::CapturePngScreenshot(const FString &Path,
 
   EnsureRenderTarget();
   CaptureComponent->CaptureScene();
-  FlushRenderingCommands();
 
-  FBufferArchive Buffer;
-  if (!FImageUtils::ExportRenderTarget2DAsPNG(RenderTarget, Buffer)) {
-    OutMessage = TEXT("Failed to render PNG screenshot.");
+  FTextureRenderTargetResource *RenderTargetResource =
+      RenderTarget->GameThread_GetRenderTargetResource();
+  if (RenderTargetResource == nullptr) {
+    OutMessage = TEXT("Failed to get render target resource.");
     return false;
   }
 
-  if (!FFileHelper::SaveArrayToFile(Buffer, *Path)) {
+  TArray<FColor> Pixels;
+  FReadSurfaceDataFlags ReadFlags(RCM_UNorm);
+  ReadFlags.SetLinearToGamma(true);
+  if (!RenderTargetResource->ReadPixels(Pixels, ReadFlags) ||
+      Pixels.Num() != CaptureWidth * CaptureHeight) {
+    OutMessage = FString::Printf(
+        TEXT("Failed to read render target pixels: %d"), Pixels.Num());
+    return false;
+  }
+
+  TArray64<uint8> PngBytes;
+  FImageUtils::PNGCompressImageArray(
+      CaptureWidth, CaptureHeight,
+      TArrayView64<const FColor>(Pixels.GetData(), Pixels.Num()), PngBytes);
+  if (PngBytes.IsEmpty()) {
+    OutMessage = TEXT("Failed to encode PNG screenshot.");
+    return false;
+  }
+
+  if (!FFileHelper::SaveArrayToFile(PngBytes, *Path)) {
     OutMessage = FString::Printf(TEXT("Failed to save PNG file: %s"), *Path);
     return false;
   }
