@@ -300,9 +300,13 @@ fn packaged_unreal_app_accepts_ipc_commands() -> anyhow::Result<()> {
     let _ = std::fs::remove_file(&output_png);
     run_cli("screenshot", &output_png)?;
 
-    let expected_png = std::fs::read(resource_path("png/dummy.png"))?;
     let actual_png = std::fs::read(&output_png)?;
-    assert_eq!(actual_png, expected_png);
+    assert!(
+        actual_png.len() > 256,
+        "rendered PNG is unexpectedly small: {} bytes",
+        actual_png.len()
+    );
+    assert_eq!(&actual_png[..8], b"\x89PNG\r\n\x1a\n");
 
     let _ = std::fs::remove_file(output_png);
     app.request_shutdown_and_wait()?;

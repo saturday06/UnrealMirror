@@ -5,8 +5,8 @@
 #include "Async/Async.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformMisc.h"
-#include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "UnrealMirrorRuntimeActor.h"
 
 #include <cstdlib>
 #include <string>
@@ -44,14 +44,11 @@ namespace {
 constexpr const char *UnrealMirrorQueueName = "unreal_mirror_commands";
 constexpr uint32 MaxQueueMessages = 64;
 constexpr uint32 MaxMessageSize = 8192;
-constexpr uint8 DummyPngBytes[] = {
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
-    0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01,
-    0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0xb5,
-    0x1c, 0x0c, 0x02, 0x00, 0x00, 0x00, 0x0b, 0x49, 0x44, 0x41,
-    0x54, 0x78, 0xda, 0x63, 0xfc, 0xff, 0x1f, 0x00, 0x03, 0x03,
-    0x02, 0x00, 0xef, 0xbf, 0xa7, 0xdb, 0x00, 0x00, 0x00, 0x00,
-    0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82};
+
+struct FCommandResult {
+  bool bOk = false;
+  FString Message;
+};
 
 bool ReadProtocolField(const std::string &Message, size_t &Offset,
                        std::string &OutField) {
@@ -128,6 +125,22 @@ FString ValidateWritablePngPath(const FString &Path) {
                            *Directory);
   }
   return FString();
+}
+
+UWorld *FindGameWorld() {
+  if (GEngine == nullptr) {
+    return nullptr;
+  }
+
+  for (const FWorldContext &Context : GEngine->GetWorldContexts()) {
+    UWorld *World = Context.World();
+    if (World != nullptr &&
+        (World->WorldType == EWorldType::Game ||
+         World->WorldType == EWorldType::PIE)) {
+      return World;
+    }
+  }
+  return nullptr;
 }
 
 } // namespace
@@ -213,45 +226,102 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
   }
 
   const FString Path = DecodeUtf8(PathUtf8);
-  FString Error;
-  FString Message;
-  bool bOk = true;
+  FCommandResult Result;
+
+  auto RunOnGameThread = [this](TFunction<FCommandResult()> Function) {
+    if (IsInGameThread()) {
+      return Function();
+    }
+
+    FEvent *DoneEvent =
+        FPlatformProcess::GetSynchEventFromPool(/*bIsManualReset=*/false);
+    FCommandResult LocalResult;
+    AsyncTask(ENamedThreads::GameThread, [&LocalResult, DoneEvent,
+                                          Function = MoveTemp(Function)]() {
+      LocalResult = Function();
+      DoneEvent->Trigger();
+    });
+    DoneEvent->Wait();
+    FPlatformProcess::ReturnSynchEventToPool(DoneEvent);
+    return LocalResult;
+  };
+
+  auto GetRuntimeActor = [this]() -> AUnrealMirrorRuntimeActor * {
+    if (RuntimeActor.IsValid()) {
+      return RuntimeActor.Get();
+    }
+
+    UWorld *World = FindGameWorld();
+    if (World == nullptr) {
+      return nullptr;
+    }
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Name = TEXT("UnrealMirrorRuntimeActor");
+    SpawnParams.SpawnCollisionHandlingOverride =
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    RuntimeActor = World->SpawnActor<AUnrealMirrorRuntimeActor>(
+        AUnrealMirrorRuntimeActor::StaticClass(), FTransform::Identity,
+        SpawnParams);
+    return RuntimeActor.Get();
+  };
 
   if (Command == "load-vrm-model") {
-    Error = ValidateReadableFile(Path, TEXT(".vrm"));
-    bOk = Error.IsEmpty();
-    Message = bOk ? FString::Printf(TEXT("VRM model path accepted: %s"), *Path)
-                  : Error;
-  } else if (Command == "load-vrm-animation") {
-    Error = ValidateReadableFile(Path, TEXT(".vrma"));
-    bOk = Error.IsEmpty();
-    Message = bOk ? FString::Printf(TEXT("VRM animation path accepted: %s"),
-                                    *Path)
-                  : Error;
-  } else if (Command == "capture-png-screenshot") {
-    Error = ValidateWritablePngPath(Path);
-    bOk = Error.IsEmpty();
-    if (bOk) {
-      TArray<uint8> PngBytes;
-      PngBytes.Append(DummyPngBytes, UE_ARRAY_COUNT(DummyPngBytes));
-      bOk = FFileHelper::SaveArrayToFile(PngBytes, *Path);
-      Message = bOk ? FString::Printf(TEXT("Dummy PNG screenshot saved: %s"), *Path)
-                    : FString::Printf(TEXT("Failed to save PNG file: %s"), *Path);
+    const FString Error = ValidateReadableFile(Path, TEXT(".vrm"));
+    if (!Error.IsEmpty()) {
+      Result = {false, Error};
     } else {
-      Message = Error;
+      Result = RunOnGameThread([GetRuntimeActor, Path]() {
+        AUnrealMirrorRuntimeActor *Actor = GetRuntimeActor();
+        if (Actor == nullptr) {
+          return FCommandResult{false, TEXT("Failed to find game world.")};
+        }
+        FString Message;
+        const bool bOk = Actor->LoadVrmModel(Path, Message);
+        return FCommandResult{bOk, Message};
+      });
+    }
+  } else if (Command == "load-vrm-animation") {
+    const FString Error = ValidateReadableFile(Path, TEXT(".vrma"));
+    if (!Error.IsEmpty()) {
+      Result = {false, Error};
+    } else {
+      Result = RunOnGameThread([GetRuntimeActor, Path]() {
+        AUnrealMirrorRuntimeActor *Actor = GetRuntimeActor();
+        if (Actor == nullptr) {
+          return FCommandResult{false, TEXT("Failed to find game world.")};
+        }
+        FString Message;
+        const bool bOk = Actor->LoadVrmAnimation(Path, Message);
+        return FCommandResult{bOk, Message};
+      });
+    }
+  } else if (Command == "capture-png-screenshot") {
+    const FString Error = ValidateWritablePngPath(Path);
+    if (!Error.IsEmpty()) {
+      Result = {false, Error};
+    } else {
+      Result = RunOnGameThread([GetRuntimeActor, Path]() {
+        AUnrealMirrorRuntimeActor *Actor = GetRuntimeActor();
+        if (Actor == nullptr) {
+          return FCommandResult{false, TEXT("Failed to find game world.")};
+        }
+        FString Message;
+        const bool bOk = Actor->CapturePngScreenshot(Path, Message);
+        return FCommandResult{bOk, Message};
+      });
     }
   } else {
-    bOk = false;
-    Message = FString::Printf(TEXT("Unknown command: %s"),
-                              UTF8_TO_TCHAR(Command.c_str()));
+    Result = {false, FString::Printf(TEXT("Unknown command: %s"),
+                                     UTF8_TO_TCHAR(Command.c_str()))};
   }
 
-  if (bOk) {
-    UE_LOG(LogUnrealMirrorIpc, Display, TEXT("%s"), *Message);
+  if (Result.bOk) {
+    UE_LOG(LogUnrealMirrorIpc, Display, TEXT("%s"), *Result.Message);
   } else {
-    UE_LOG(LogUnrealMirrorIpc, Warning, TEXT("%s"), *Message);
+    UE_LOG(LogUnrealMirrorIpc, Warning, TEXT("%s"), *Result.Message);
   }
-  SendReply(ReplyQueueName, bOk, Message);
+  SendReply(ReplyQueueName, Result.bOk, Result.Message);
 }
 
 void FUnrealMirrorIpcServer::SendReply(const std::string &ReplyQueueName,

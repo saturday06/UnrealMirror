@@ -26,4 +26,5 @@ private:
 
   std::atomic_bool bStopRequested;
   TUniquePtr<std::thread> WorkerThread;
+  TWeakObjectPtr<class AUnrealMirrorRuntimeActor> RuntimeActor;
 };
