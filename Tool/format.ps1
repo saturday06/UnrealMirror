@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$vsVersionRange = "[17.0,18.0)"
+$config = Import-PowerShellDataFile (Join-Path -Path $PSScriptRoot -ChildPath "config.psd1")
 
 $env:DOTNET_CLI_UI_LANGUAGE = "en"
 
@@ -17,7 +17,7 @@ if ($IsWindows) {
     $vsInstallationPath = $null
     try {
       $vsInstallationPath = & $vswhere `
-        -version $vsVersionRange `
+        -version $config.VsCmakeGenerator `
         -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang `
         -property installationPath
     }

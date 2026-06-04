@@ -11,11 +11,11 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$vsCmakeGenerator = "Visual Studio 17 2022"
-$vcVersion = "vc143"
-$osxDeploymentTarget = "14.0"
-$cmakeVersion = "4.3.3"
-$grpcVersion = "1.81.0"
+$config = Import-PowerShellDataFile (Join-Path -Path $PSScriptRoot -ChildPath "config.psd1")
+$vsCmakeGenerator = $config.VsCmakeGenerator
+$vcVersion = $config.VcVersion
+$osxDeploymentTarget = $config.OsxDeploymentTarget
+$cmakeVersion = $config.CmakeVersion
 
 Write-Output "Target Platform: $TargetPlatform"
 Write-Output "Target Configuration: $TargetConfiguration"

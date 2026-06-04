@@ -6,6 +6,7 @@
 *.ini text eol=crlf
 *.json text eol=lf
 *.ps1 text eol=lf
+*.psd1 text eol=lf
 *.uproject text eol=crlf
 *.usf text eol=crlf
 .* text eol=lf
