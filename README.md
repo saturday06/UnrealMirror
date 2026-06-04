@@ -4,4 +4,5 @@
 
 ## コマンドラインビルド
 
-PowerShell 7.4 以降をインストールし `./Tool/build.ps1` を実行してください。
+- Windowsの場合 `./Tool/build.bat` を実行してください。
+- macOSやLinuxの場合 `./Tool/build.sh` を実行してください。
