@@ -12,11 +12,15 @@ const APP_START_TIMEOUT: Duration = Duration::from_secs(60);
 const CLI_TIMEOUT_MS: &str = "5000";
 
 struct UnrealMirrorApp {
+    app_root: PathBuf,
     child: Child,
 }
 
 impl Drop for UnrealMirrorApp {
     fn drop(&mut self) {
+        #[cfg(windows)]
+        terminate_windows_app_processes(&self.app_root, self.child.id());
+
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -77,6 +81,10 @@ fn start_unreal_mirror_app() -> anyhow::Result<UnrealMirrorApp> {
             "UnrealMirror.exe was not found. Set UNREAL_MIRROR_APP_EXE to a packaged app binary."
         )
     })?;
+    let app_root = app
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("app path has no parent: {}", app.display()))?
+        .to_path_buf();
 
     let mut command = Command::new(&app);
     command
@@ -92,7 +100,33 @@ fn start_unreal_mirror_app() -> anyhow::Result<UnrealMirrorApp> {
     }
 
     let child = command.spawn()?;
-    Ok(UnrealMirrorApp { child })
+    Ok(UnrealMirrorApp { app_root, child })
+}
+
+#[cfg(windows)]
+fn terminate_windows_app_processes(app_root: &Path, root_pid: u32) {
+    let _ = Command::new("taskkill")
+        .args(["/PID", &root_pid.to_string(), "/T", "/F"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+
+    let app_root = app_root.to_string_lossy().replace('\'', "''");
+    let script = format!(
+        "$root = [IO.Path]::GetFullPath('{app_root}').TrimEnd('\\') + '\\'; \
+         Get-CimInstance Win32_Process | \
+         Where-Object {{ $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) }} | \
+         Sort-Object ProcessId -Descending | \
+         ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
+    );
+
+    let _ = Command::new("pwsh")
+        .args(["-NoProfile", "-Command", &script])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
 }
 
 fn run_cli(command: &str, path: &Path) -> anyhow::Result<()> {
