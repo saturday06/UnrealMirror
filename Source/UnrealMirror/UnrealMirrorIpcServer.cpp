@@ -216,6 +216,11 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
     return;
   }
 
+  if (Command == "ping") {
+    SendReply(ReplyQueueName, true, TEXT("pong"));
+    return;
+  }
+
   if (Command == "shutdown") {
     const FString Message = TEXT("Shutdown requested.");
     UE_LOG(LogUnrealMirrorIpc, Display, TEXT("%s"), *Message);
@@ -266,6 +271,30 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
     return RuntimeActor.Get();
   };
 
+  auto CaptureOnGameThread = [this, Path,
+                              GetRuntimeActor]() -> FCommandResult {
+    FEvent *DoneEvent =
+        FPlatformProcess::GetSynchEventFromPool(/*bIsManualReset=*/false);
+    FCommandResult LocalResult;
+    AsyncTask(ENamedThreads::GameThread,
+              [GetRuntimeActor, Path, &LocalResult, DoneEvent]() {
+                AUnrealMirrorRuntimeActor *Actor = GetRuntimeActor();
+                if (Actor == nullptr) {
+                  LocalResult = {false, TEXT("Failed to find game world.")};
+                  DoneEvent->Trigger();
+                  return;
+                }
+                Actor->CapturePngScreenshotAsync(
+                    Path, [&LocalResult, DoneEvent](bool bOk, FString Message) {
+                      LocalResult = {bOk, Message};
+                      DoneEvent->Trigger();
+                    });
+              });
+    DoneEvent->Wait();
+    FPlatformProcess::ReturnSynchEventToPool(DoneEvent);
+    return LocalResult;
+  };
+
   if (Command == "load-vrm-model") {
     const FString Error = ValidateReadableFile(Path, TEXT(".vrm"));
     if (!Error.IsEmpty()) {
@@ -301,15 +330,7 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
     if (!Error.IsEmpty()) {
       Result = {false, Error};
     } else {
-      Result = RunOnGameThread([GetRuntimeActor, Path]() {
-        AUnrealMirrorRuntimeActor *Actor = GetRuntimeActor();
-        if (Actor == nullptr) {
-          return FCommandResult{false, TEXT("Failed to find game world.")};
-        }
-        FString Message;
-        const bool bOk = Actor->CapturePngScreenshot(Path, Message);
-        return FCommandResult{bOk, Message};
-      });
+      Result = CaptureOnGameThread();
     }
   } else {
     Result = {false, FString::Printf(TEXT("Unknown command: %s"),

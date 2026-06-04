@@ -28,6 +28,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    Ping,
     LoadVrm {
         #[arg(value_name = "VRM_PATH")]
         path: PathBuf,
@@ -46,6 +47,7 @@ enum Command {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let (command, path) = match cli.command {
+        Command::Ping => ("ping", None),
         Command::LoadVrm { path } => ("load-vrm-model", Some(path)),
         Command::LoadAnimation { path } => ("load-vrm-animation", Some(path)),
         Command::Screenshot { path } => ("capture-png-screenshot", Some(path)),

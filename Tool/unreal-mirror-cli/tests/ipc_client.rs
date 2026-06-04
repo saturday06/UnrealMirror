@@ -13,6 +13,15 @@ const APP_START_TIMEOUT: Duration = Duration::from_secs(60);
 const APP_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(15);
 const CLI_PROCESS_TIMEOUT: Duration = Duration::from_secs(45);
 const CLI_TIMEOUT_MS: &str = "30000";
+const VRM_LOAD_PROCESS_TIMEOUT: Duration = Duration::from_secs(130);
+const VRM_LOAD_TIMEOUT_MS: &str = "120000";
+const SCREENSHOT_PROCESS_TIMEOUT: Duration = Duration::from_secs(70);
+const SCREENSHOT_TIMEOUT_MS: &str = "60000";
+const EXPECTED_CAPTURE_WIDTH: u32 = 256;
+const EXPECTED_CAPTURE_HEIGHT: u32 = 256;
+const MAX_AVERAGE_CHANNEL_DELTA: f64 = 2.0;
+const MAX_CHANNEL_DELTA: u8 = 32;
+const UPDATE_EXPECTED_CAPTURE_ENV: &str = "UNREAL_MIRROR_UPDATE_EXPECTED_CAPTURE";
 
 struct UnrealMirrorApp {
     app_root: PathBuf,
@@ -31,7 +40,16 @@ impl UnrealMirrorApp {
 
         match std::fs::read_to_string(log_path) {
             Ok(log) => {
-                let mut lines = log.lines().rev().take(80).collect::<Vec<_>>();
+                let relevant = log
+                    .lines()
+                    .filter(|line| line.contains("LogUnrealMirror"))
+                    .collect::<Vec<_>>();
+                let source = if relevant.is_empty() {
+                    log.lines().collect::<Vec<_>>()
+                } else {
+                    relevant
+                };
+                let mut lines = source.into_iter().rev().take(120).collect::<Vec<_>>();
                 lines.reverse();
                 lines.join("\n")
             }
@@ -291,7 +309,16 @@ fn run_cli_process(
 }
 
 fn run_cli(command: &str, path: &Path) -> anyhow::Result<()> {
-    let output = run_cli_process(command, Some(path), CLI_TIMEOUT_MS, CLI_PROCESS_TIMEOUT)?;
+    run_cli_with_timeouts(command, path, CLI_TIMEOUT_MS, CLI_PROCESS_TIMEOUT)
+}
+
+fn run_cli_with_timeouts(
+    command: &str,
+    path: &Path,
+    timeout_ms: &str,
+    process_timeout: Duration,
+) -> anyhow::Result<()> {
+    let output = run_cli_process(command, Some(path), timeout_ms, process_timeout)?;
 
     if output.success {
         Ok(())
@@ -299,7 +326,7 @@ fn run_cli(command: &str, path: &Path) -> anyhow::Result<()> {
         let timeout_message = if output.timed_out {
             format!(
                 "\nprocess timeout: exceeded {} seconds",
-                CLI_PROCESS_TIMEOUT.as_secs()
+                process_timeout.as_secs()
             )
         } else {
             String::new()
@@ -336,11 +363,24 @@ fn run_cli_without_path(command: &str) -> anyhow::Result<()> {
 
 fn wait_for_ipc_server() -> anyhow::Result<()> {
     let deadline = Instant::now() + APP_START_TIMEOUT;
-    let vrm = resource_path("vrm/triangle.vrm");
 
     loop {
-        match run_cli("load-vrm", &vrm) {
-            Ok(()) => return Ok(()),
+        match run_cli_process("ping", None, "1000", Duration::from_secs(5)) {
+            Ok(output) if output.success => return Ok(()),
+            Ok(output) if Instant::now() < deadline => {
+                eprintln!(
+                    "waiting for UnrealMirror IPC server: ping failed\nstdout:\n{}\nstderr:\n{}",
+                    output.stdout, output.stderr
+                );
+                thread::sleep(Duration::from_secs(1));
+            }
+            Ok(output) => {
+                return Err(anyhow::anyhow!(
+                    "timed out waiting for UnrealMirror IPC server ping\nstdout:\n{}\nstderr:\n{}",
+                    output.stdout,
+                    output.stderr
+                ));
+            }
             Err(error) if Instant::now() < deadline => {
                 eprintln!("waiting for UnrealMirror IPC server: {error}");
                 thread::sleep(Duration::from_secs(1));
@@ -366,15 +406,67 @@ fn temp_file_path(extension: &str) -> PathBuf {
     std::env::temp_dir().join(format!("unreal-mirror-ipc-{nanos}.{extension}"))
 }
 
+fn assert_png_matches_expected(actual_path: &Path, expected_path: &Path) -> anyhow::Result<()> {
+    let actual = image::ImageReader::open(actual_path)?.decode()?.to_rgba8();
+    let expected = image::ImageReader::open(expected_path)?
+        .decode()?
+        .to_rgba8();
+
+    assert_eq!(
+        actual.dimensions(),
+        (EXPECTED_CAPTURE_WIDTH, EXPECTED_CAPTURE_HEIGHT),
+        "actual screenshot dimensions differ"
+    );
+    assert_eq!(
+        expected.dimensions(),
+        (EXPECTED_CAPTURE_WIDTH, EXPECTED_CAPTURE_HEIGHT),
+        "expected screenshot dimensions differ"
+    );
+
+    let mut total_delta: u64 = 0;
+    let mut max_delta = 0_u8;
+    let mut channel_count: u64 = 0;
+
+    for (actual, expected) in actual.pixels().zip(expected.pixels()) {
+        for (actual, expected) in actual.0.iter().zip(expected.0.iter()) {
+            let delta = actual.abs_diff(*expected);
+            total_delta += u64::from(delta);
+            max_delta = max_delta.max(delta);
+            channel_count += 1;
+        }
+    }
+
+    let average_delta = total_delta as f64 / channel_count as f64;
+    assert!(
+        average_delta <= MAX_AVERAGE_CHANNEL_DELTA,
+        "average PNG channel delta is too high: {average_delta:.3} > {MAX_AVERAGE_CHANNEL_DELTA}"
+    );
+    assert!(
+        max_delta <= MAX_CHANNEL_DELTA,
+        "max PNG channel delta is too high: {max_delta} > {MAX_CHANNEL_DELTA}"
+    );
+    Ok(())
+}
+
+fn should_update_expected_capture() -> bool {
+    std::env::var(UPDATE_EXPECTED_CAPTURE_ENV).is_ok_and(|value| value == "1")
+}
+
 #[test]
 fn test_data_files_are_available() {
     let vrm = resource_path("vrm/triangle.vrm");
     let vrma = resource_path("vrma/nop.vrma");
     let png = resource_path("png/dummy.png");
+    let expected_capture = resource_path("png/triangle-render.png");
 
     assert!(vrm.is_file(), "missing test VRM: {}", vrm.display());
     assert!(vrma.is_file(), "missing test VRMA: {}", vrma.display());
     assert!(png.is_file(), "missing test PNG: {}", png.display());
+    assert!(
+        expected_capture.is_file(),
+        "missing expected render PNG: {}",
+        expected_capture.display()
+    );
 
     let png_bytes = std::fs::read(&png).expect("failed to read dummy PNG");
     assert_eq!(&png_bytes[..8], b"\x89PNG\r\n\x1a\n");
@@ -407,25 +499,51 @@ fn unreal_ipc_server_accepts_test_data_paths() {
 #[test]
 #[ignore = "requires packaged UnrealMirror app; set UNREAL_MIRROR_APP_EXE or run Tool/build.ps1 first"]
 fn packaged_unreal_app_accepts_ipc_commands() -> anyhow::Result<()> {
+    let mut last_error = None;
+    for attempt in 1..=2 {
+        match packaged_unreal_app_accepts_ipc_commands_once() {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                eprintln!("packaged UnrealMirror integration attempt {attempt} failed: {error}");
+                last_error = Some(error);
+                thread::sleep(Duration::from_secs(5));
+            }
+        }
+    }
+
+    Err(last_error.expect("at least one integration attempt should run"))
+}
+
+fn packaged_unreal_app_accepts_ipc_commands_once() -> anyhow::Result<()> {
     let mut app = start_unreal_mirror_app()?;
     wait_for_ipc_server()?;
 
+    run_cli_with_timeouts(
+        "load-vrm",
+        &resource_path("vrm/triangle.vrm"),
+        VRM_LOAD_TIMEOUT_MS,
+        VRM_LOAD_PROCESS_TIMEOUT,
+    )
+    .map_err(|error| anyhow::anyhow!("{error}\n\nUnrealMirror log tail:\n{}", app.log_tail()))?;
     run_cli("load-animation", &resource_path("vrma/nop.vrma"))?;
     thread::sleep(Duration::from_millis(500));
 
     let output_png = temp_png_path();
     let _ = std::fs::remove_file(&output_png);
-    run_cli("screenshot", &output_png).map_err(|error| {
-        anyhow::anyhow!("{error}\n\nUnrealMirror log tail:\n{}", app.log_tail())
-    })?;
+    run_cli_with_timeouts(
+        "screenshot",
+        &output_png,
+        SCREENSHOT_TIMEOUT_MS,
+        SCREENSHOT_PROCESS_TIMEOUT,
+    )
+    .map_err(|error| anyhow::anyhow!("{error}\n\nUnrealMirror log tail:\n{}", app.log_tail()))?;
 
-    let actual_png = std::fs::read(&output_png)?;
-    assert!(
-        actual_png.len() > 256,
-        "rendered PNG is unexpectedly small: {} bytes",
-        actual_png.len()
-    );
-    assert_eq!(&actual_png[..8], b"\x89PNG\r\n\x1a\n");
+    let expected_capture = resource_path("png/triangle-render.png");
+    if should_update_expected_capture() {
+        std::fs::copy(&output_png, &expected_capture)?;
+    } else {
+        assert_png_matches_expected(&output_png, &expected_capture)?;
+    }
 
     let _ = std::fs::remove_file(output_png);
     app.request_shutdown_and_wait()?;

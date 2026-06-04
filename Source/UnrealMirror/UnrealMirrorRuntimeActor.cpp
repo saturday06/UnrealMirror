@@ -2,6 +2,7 @@
 
 #include "UnrealMirrorRuntimeActor.h"
 
+#include "Async/Async.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneComponent.h"
@@ -17,8 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealMirrorRuntime, Log, All);
 
 namespace {
 
-constexpr int32 CaptureWidth = 512;
-constexpr int32 CaptureHeight = 512;
+constexpr int32 CaptureWidth = 256;
+constexpr int32 CaptureHeight = 256;
 
 } // namespace
 
@@ -74,6 +75,8 @@ bool AUnrealMirrorRuntimeActor::LoadVrmModel(const FString &Path,
   MeshComponent->SetVisibility(true, true);
   MeshComponent->RefreshBoneTransforms();
   FrameLoadedModel();
+  EnsureRenderTarget();
+  CaptureComponent->CaptureScene();
 
   OutMessage = FString::Printf(TEXT("VRM model loaded: %s"), *Path);
   UE_LOG(LogUnrealMirrorRuntime, Display, TEXT("%s"), *OutMessage);
@@ -97,7 +100,48 @@ bool AUnrealMirrorRuntimeActor::CapturePngScreenshot(const FString &Path,
 
   EnsureRenderTarget();
   CaptureComponent->CaptureScene();
+  return WriteRenderTargetPng(Path, OutMessage);
+}
 
+void AUnrealMirrorRuntimeActor::CapturePngScreenshotAsync(
+    const FString &Path, TFunction<void(bool, FString)> Completion) {
+  if (VrmAsset == nullptr || MeshComponent->GetSkeletalMeshAsset() == nullptr) {
+    Completion(false, TEXT("No VRM model has been loaded."));
+    return;
+  }
+
+  UWorld *World = GetWorld();
+  if (World == nullptr) {
+    Completion(false, TEXT("Failed to find game world."));
+    return;
+  }
+
+  EnsureRenderTarget();
+  CaptureComponent->CaptureScene();
+  UE_LOG(LogUnrealMirrorRuntime, Display,
+         TEXT("PNG screenshot capture requested: %s"), *Path);
+  TWeakObjectPtr<AUnrealMirrorRuntimeActor> WeakThis(this);
+  Async(EAsyncExecution::ThreadPool,
+        [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
+          FPlatformProcess::Sleep(0.1f);
+          AsyncTask(ENamedThreads::GameThread,
+                    [WeakThis, Path, Completion = MoveTemp(Completion)]() mutable {
+        AUnrealMirrorRuntimeActor *Actor = WeakThis.Get();
+        if (Actor == nullptr) {
+          Completion(false, TEXT("Runtime actor is no longer available."));
+          return;
+        }
+        FString Message;
+        UE_LOG(LogUnrealMirrorRuntime, Display,
+               TEXT("PNG screenshot readback started: %s"), *Path);
+        const bool bOk = Actor->WriteRenderTargetPng(Path, Message);
+        Completion(bOk, Message);
+      });
+        });
+}
+
+bool AUnrealMirrorRuntimeActor::WriteRenderTargetPng(const FString &Path,
+                                                     FString &OutMessage) {
   FTextureRenderTargetResource *RenderTargetResource =
       RenderTarget->GameThread_GetRenderTargetResource();
   if (RenderTargetResource == nullptr) {

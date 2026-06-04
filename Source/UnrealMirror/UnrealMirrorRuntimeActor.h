@@ -24,10 +24,13 @@ public:
   bool LoadVrmModel(const FString &Path, FString &OutMessage);
   bool LoadVrmAnimation(const FString &Path, FString &OutMessage);
   bool CapturePngScreenshot(const FString &Path, FString &OutMessage);
+  void CapturePngScreenshotAsync(
+      const FString &Path, TFunction<void(bool, FString)> Completion);
 
 private:
   void FrameLoadedModel();
   void EnsureRenderTarget();
+  bool WriteRenderTargetPng(const FString &Path, FString &OutMessage);
 
   UPROPERTY()
   TObjectPtr<USceneComponent> SceneRoot;
