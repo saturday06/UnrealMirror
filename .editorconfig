@@ -25,17 +25,23 @@ indent_size = unset
 end_of_line = crlf
 
 [*.c]
+indent_size = unset
 end_of_line = crlf
 
 [*.cpp]
+indent_size = unset
 end_of_line = crlf
 
 [*.h]
+indent_size = unset
 end_of_line = crlf
 
 [*.cs]
 indent_size = 4
 end_of_line = crlf
+
+[*.rs]
+indent_size = unset
 
 [*.uproject]
 end_of_line = crlf
