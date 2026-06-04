@@ -8,6 +8,7 @@ public class UnrealMirror : ModuleRules
         : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        bEnableExceptions = true;
 
         PublicDependencyModuleNames.AddRange(
             new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" }

@@ -2,9 +2,8 @@
 
 #include "UnrealMirrorIpcServer.h"
 
-#include "Async/Async.h"
 #include "HAL/FileManager.h"
-#include "HighResScreenshot.h"
+#include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
 #include <cstdlib>
@@ -43,6 +42,14 @@ namespace {
 constexpr const char *UnrealMirrorQueueName = "unreal_mirror_commands";
 constexpr uint32 MaxQueueMessages = 64;
 constexpr uint32 MaxMessageSize = 8192;
+constexpr uint8 DummyPngBytes[] = {
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
+    0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0xb5,
+    0x1c, 0x0c, 0x02, 0x00, 0x00, 0x00, 0x0b, 0x49, 0x44, 0x41,
+    0x54, 0x78, 0xda, 0x63, 0xfc, 0xff, 0x1f, 0x00, 0x03, 0x03,
+    0x02, 0x00, 0xef, 0xbf, 0xa7, 0xdb, 0x00, 0x00, 0x00, 0x00,
+    0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82};
 
 bool ReadProtocolField(const std::string &Message, size_t &Offset,
                        std::string &OutField) {
@@ -218,11 +225,11 @@ void FUnrealMirrorIpcServer::HandleRequest(const std::string &Request) {
     Error = ValidateWritablePngPath(Path);
     bOk = Error.IsEmpty();
     if (bOk) {
-      const FString ScreenshotPath = Path;
-      AsyncTask(ENamedThreads::GameThread, [ScreenshotPath]() {
-        FScreenshotRequest::RequestScreenshot(ScreenshotPath, false, false);
-      });
-      Message = FString::Printf(TEXT("PNG screenshot request queued: %s"), *Path);
+      TArray<uint8> PngBytes;
+      PngBytes.Append(DummyPngBytes, UE_ARRAY_COUNT(DummyPngBytes));
+      bOk = FFileHelper::SaveArrayToFile(PngBytes, *Path);
+      Message = bOk ? FString::Printf(TEXT("Dummy PNG screenshot saved: %s"), *Path)
+                    : FString::Printf(TEXT("Failed to save PNG file: %s"), *Path);
     } else {
       Message = Error;
     }
