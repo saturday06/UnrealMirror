@@ -171,12 +171,13 @@ fn start_unreal_mirror_app() -> anyhow::Result<UnrealMirrorApp> {
     let mut command = Command::new(&app);
     command
         .args([
+            "-AllowSoftwareRendering",
+            "-FullStdOutLogOutput",
+            "-NOSPLASH",
             "-RenderOffscreen",
-            "-unattended",
-            "-nosplash",
             "-nopause",
             "-stdout",
-            "-FullStdOutLogOutput",
+            "-unattended",
         ])
         .arg(format!("-abslog={}", log_path.display()))
         .stdin(Stdio::null())
