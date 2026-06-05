@@ -38,7 +38,7 @@ elseif ($IsMacOS) {
   }
   $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
 }
-elseif ($Linux) {
+elseif ($IsLinux) {
   $ueRoot = $env:UE_ROOT
   if (-not ($ueRoot)) {
     $errorMessage = 'Please set the "UE_ROOT" environment variable'
