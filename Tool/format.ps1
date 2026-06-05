@@ -37,15 +37,21 @@ elseif ($IsMacOS) {
   }
 }
 if (-not $clangFormat -or -not (Test-Path $clangFormat)) {
-  $clangFormat = (Get-Command clang-format).Source
+  try {
+    $clangFormat = (Get-Command clang-format).Source
+  } catch [System.Management.Automation.CommandNotFoundException] {
+    Write-Output "clang-format was not found"
+  }
 }
 
 Push-Location $PSScriptRoot
 try {
-  Write-Output "Formatting C/C++ files..."
-  Get-ChildItem ../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
-    Write-Output "Formatting: $($_.FullName)"
-    & $clangFormat -i $_.FullName
+  if ($clangFormat) {
+    Write-Output "Formatting C/C++ files..."
+    Get-ChildItem ../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
+      Write-Output "Formatting: $($_.FullName)"
+      & $clangFormat -i $_.FullName
+    }
   }
 
   Write-Output "Formatting C# files..."
