@@ -4,7 +4,8 @@
 
 param(
   [string]$TargetPlatform,
-  [string]$TargetConfiguration
+  [string]$TargetConfiguration,
+  [string]$TargetType
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,15 +23,9 @@ $cmakeVersion = $config.CmakeVersion
 
 Write-Output "Target Platform: $TargetPlatform"
 Write-Output "Target Configuration: $TargetConfiguration"
+Write-Output "Target Type: $TargetType"
 
-if ($TargetConfiguration -in @(
-    "Debug",
-    "Debug Editor",
-    "DebugGame",
-    "DebugGame Editor",
-    "Development",
-    "Development Editor"
-  )) {
+if ($TargetType -ne "Editor" -and ($TargetConfiguration -in @("Debug", "DebugGame", "Development"))) {
   $release = $false
   $cmakeConfig = "Debug"
 }
