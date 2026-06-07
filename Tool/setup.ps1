@@ -235,7 +235,7 @@ else {
   else {
     $debugPostfix = "d"
   }
-  if ($TargetPlatform -eq "Mac") {
+  if ($TargetPlatform -in @("IOS", "Mac")) {
     $assimpLibPath = Join-Path -Path $assimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath $cmakeConfig, "libassimp${debugPostfix}.a"
   }
   else {
