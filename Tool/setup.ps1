@@ -226,7 +226,12 @@ else {
   else {
     $debugPostfix = "d"
   }
-  $assimpLibPath = Join-Path -Path $assimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "libassimp${debugPostfix}.a"
+  if ($TargetPlatform -eq "Mac") {
+    $assimpLibPath = Join-Path -Path $assimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath $cmakeConfig, "libassimp${debugPostfix}.a"
+  }
+  else {
+    $assimpLibPath = Join-Path -Path $assimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "libassimp${debugPostfix}.a"
+  }
   $vrm4uAssimpLibFolderPath = Join-Path -Path $vrm4uAssimpBaseFolderPath -ChildPath "lib" -AdditionalChildPath $TargetPlatform
   New-Item -ItemType Directory $vrm4uAssimpLibFolderPath -Force
   Copy-Item $assimpLibPath (Join-Path -Path $vrm4uAssimpLibFolderPath -ChildPath "libassimp.a")
