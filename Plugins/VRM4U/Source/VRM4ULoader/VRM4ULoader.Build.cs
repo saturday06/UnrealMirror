@@ -140,6 +140,16 @@ public class VRM4ULoader : ModuleRules
 			string PlatformString = "Mac";
 			PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "assimp", "lib", PlatformString, "libassimp.a"));
 		}
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			string PlatformString = "Linux";
+			PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "assimp", "lib", PlatformString, "libassimp.a"));
+		}
+		if (Target.Platform == UnrealTargetPlatform.LinuxArm64)
+		{
+			string PlatformString = "LinuxArm64";
+			PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "assimp", "lib", PlatformString, "libassimp.a"));
+		}
 
 	}
 }
