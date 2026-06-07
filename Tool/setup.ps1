@@ -133,6 +133,15 @@ elseif ($TargetPlatform -eq "LinuxArm64" -and $IsLinux) {
 elseif ($TargetPlatform -eq "IOS" -and $IsMacOS) {
   $cmakeGenerator = "Xcode"
   $assimpBuildSharedLibs = "OFF"
+  $iosCmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "ios-cmake"
+  $iosCmakeToolchainPath = Join-Path -Path $iosCmakeFolderPath -ChildPath "ios.toolchain.cmake"
+  if (-not (Test-Path $iosCmakeToolchainPath)) {
+    git -C $iosCmakeFolderPath submodule update --init --recursive --depth 1
+  }
+  $cmakeGeneratorOptions += @(
+    "-DCMAKE_TOOLCHAIN_FILE=${iosCmakeToolchainPath}"
+    "-DPLATFORM=OS64"
+  )
 }
 else {
   Write-Output "Unsupported target platform: ${TargetPlatform} for $($PSVersionTable.Platform)"
