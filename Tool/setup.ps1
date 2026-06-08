@@ -67,7 +67,7 @@ switch ($processArchitecture) {
 
 $cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "cmake"
 $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
-New-Item -ItemType Directory $cmakeDistributionPath -Force
+New-Item -ItemType Directory $cmakeDistributionPath -Force | Out-Null
 
 if ($IsWindows) {
   $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-windows-${cmakeArchitecture}.zip"
@@ -179,7 +179,7 @@ if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.
 $assimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath $TargetPlatform, $cmakeConfig
 $vrm4uAssimpBaseFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Plugins", "VRM4U", "ThirdParty", "assimp"
 
-New-Item -ItemType Directory $assimpBuildFolderPath -Force
+New-Item -ItemType Directory $assimpBuildFolderPath -Force | Out-Null
 
 if (-not (Test-Path (Join-Path -Path $assimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
   & $cmake `
@@ -192,8 +192,8 @@ if (-not (Test-Path (Join-Path -Path $assimpBuildFolderPath -ChildPath "CMakeCac
 if ($TargetPlatform -eq "Win64") {
   $vrm4uAssimpBinFolderPath = Join-Path -Path $vrm4uAssimpBaseFolderPath -ChildPath "bin" -AdditionalChildPath "x64"
   $vrm4uAssimpLibFolderPath = Join-Path -Path $vrm4uAssimpBaseFolderPath -ChildPath "lib" -AdditionalChildPath "x64", $cmakeConfig
-  New-Item -ItemType Directory $vrm4uAssimpBinFolderPath -Force
-  New-Item -ItemType Directory $vrm4uAssimpLibFolderPath -Force
+  New-Item -ItemType Directory $vrm4uAssimpBinFolderPath -Force | Out-Null
+  New-Item -ItemType Directory $vrm4uAssimpLibFolderPath -Force | Out-Null
 
   if ($release) {
     $cRuntime = "mt"
@@ -237,12 +237,12 @@ else {
     $assimpLibPath = Join-Path -Path $assimpBuildFolderPath -ChildPath "lib" -AdditionalChildPath "libassimp${debugPostfix}.a"
   }
   $vrm4uAssimpLibFolderPath = Join-Path -Path $vrm4uAssimpBaseFolderPath -ChildPath "lib" -AdditionalChildPath $TargetPlatform
-  New-Item -ItemType Directory $vrm4uAssimpLibFolderPath -Force
+  New-Item -ItemType Directory $vrm4uAssimpLibFolderPath -Force | Out-Null
   Copy-Item $assimpLibPath (Join-Path -Path $vrm4uAssimpLibFolderPath -ChildPath "libassimp.a")
 }
 
 $vrm4uAssimpIncludeFolderPath = Join-Path -Path $vrm4uAssimpBaseFolderPath -ChildPath "include" -AdditionalChildPath "assimp"
 Remove-Item $vrm4uAssimpIncludeFolderPath -Recurse -Force
-New-Item -ItemType Directory -Path $vrm4uAssimpIncludeFolderPath -Force
+New-Item -ItemType Directory -Path $vrm4uAssimpIncludeFolderPath -Force | Out-Null
 Copy-Item (Join-Path -Path $assimpSourceFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
 Copy-Item (Join-Path -Path $assimpBuildFolderPath -ChildPath "include" -AdditionalChildPath "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
