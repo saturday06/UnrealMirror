@@ -15,11 +15,17 @@ public class UnrealMirror : ModuleRules
         );
 
         PrivateDependencyModuleNames.AddRange(
-            new string[] { "Boost", "ImageWrapper", "RenderCore", "VRM4U", "VRM4ULoader" }
+            new string[]
+            {
+                "Boost",
+                "ImageWrapper",
+                "RenderCore",
+                "VRM4U",
+                "VRM4ULoader",
+                "Slate",
+                "SlateCore",
+            }
         );
-
-        // Uncomment if you are using Slate UI
-        // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
         // Uncomment if you are using online features
         // PrivateDependencyModuleNames.Add("OnlineSubsystem");

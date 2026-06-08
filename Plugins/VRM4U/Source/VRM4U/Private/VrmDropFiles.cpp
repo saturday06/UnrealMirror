@@ -3,7 +3,9 @@
 // ApplicationLifecycleComponent.cpp: Component to handle receiving notifications from the OS about application state (activated, suspended, termination, etc)
 
 #include "VrmDropFiles.h"
+#include "HAL/PlatformMisc.h"
 #include "Misc/CoreDelegates.h"
+#include "Misc/Paths.h"
 
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
@@ -66,6 +68,16 @@ void UVrmDropFilesComponent::OnUnregister()
 
 bool UVrmDropFilesComponent::VRMGetOpenFileName(FString &FileName) {
 	FileName = "";
+
+	const FString EnvFileName = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREAL_MIRROR_VRM_PATH"));
+	if (EnvFileName.IsEmpty() == false) {
+		FileName = EnvFileName;
+		if (FPaths::FileExists(FileName) == false) {
+			UE_LOG(LogTemp, Warning, TEXT("UNREAL_MIRROR_VRM_PATH does not exist: %s"), *FileName);
+			return false;
+		}
+		return true;
+	}
 
 #if PLATFORM_WINDOWS
 

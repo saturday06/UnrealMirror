@@ -23,6 +23,8 @@
 /Plugins/VRM4U/ThirdParty/assimp/include/assimp/config.h
 /Plugins/VRM4U/ThirdParty/assimp/include/assimp/revision.h
 /Saved/
+/sample.vrm
+/screenshot.png
 /Tool/bazel/
 /Tool/cmake/
 /Tool/grpc/
