@@ -37,12 +37,18 @@ function Find-UnrealMirrorExe {
     (Join-Path $ProjectRootPath "Saved\StagedBuilds")
   )
 
+  if ($IsWindows) {
+    $exeExt = ".exe"
+  } else {
+    $exeExt = ""
+  }
+
   foreach ($searchRoot in $searchRoots) {
     if (-not (Test-Path -LiteralPath $searchRoot -PathType Container)) {
       continue
     }
 
-    $candidate = Get-ChildItem -LiteralPath $searchRoot -Recurse -Filter "UnrealMirror.exe" -File -ErrorAction SilentlyContinue |
+    $candidate = Get-ChildItem -LiteralPath $searchRoot -Recurse -Filter "UnrealMirror${exeExt}" -File -ErrorAction SilentlyContinue |
     Sort-Object -Property LastWriteTime -Descending |
     Select-Object -First 1
 
@@ -87,7 +93,7 @@ function Save-FileFromUrl {
 }
 
 $projectRootPath = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..")).Path
-$buildScriptPath = Join-Path -Path $projectRootPath -ChildPath "Tool" -AdditionalChildPath "build.bat"
+$buildScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "run-uat-build-cook-run.ps1"
 
 if ([string]::IsNullOrWhiteSpace($ScreenshotPath)) {
   $ScreenshotPath = Join-Path $projectRootPath "screenshot.png"
@@ -119,9 +125,6 @@ Push-Location $projectRootPath
 try {
   Write-Output "Building UnrealMirror with $buildScriptPath"
   & $buildScriptPath @BuildArguments
-  if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-  }
 
   if ([string]::IsNullOrWhiteSpace($GameExePath)) {
     $GameExePath = Find-UnrealMirrorExe -ProjectRootPath $projectRootPath
