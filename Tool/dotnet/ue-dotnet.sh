@@ -3,7 +3,7 @@
 set -eu -o pipefail
 
 engine_association=$(
-  python3 - <<ENGINE_ASSOCIATION "$(dirname "$0")/../../UnrealMirror.uproject"
+  python3 - "$(dirname "$0")/../../UnrealMirror.uproject" <<ENGINE_ASSOCIATION
 import json
 import pathlib
 import sys
@@ -47,7 +47,7 @@ if [ ! -f "$setup_environment_sh_path" ]; then
 fi
 
 set +eu
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090
 . "$setup_environment_sh_path" -dotnet "$batch_files_platform_path"
 set -eu
 

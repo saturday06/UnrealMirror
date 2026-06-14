@@ -2,13 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #Requires -Version 7.4
 
-$ErrorActionPreference = "Stop"
-$PSNativeCommandUseErrorActionPreference = $true
-Set-StrictMode -Version 3
-
 param(
   [Parameter(ValueFromRemainingArguments = $true)]
-  [string[]]$BuildArguments,
+  [string[]]$BuildArguments = @(),
 
   [string]$GameExePath = $env:UNREAL_MIRROR_APP_EXE,
 
@@ -25,6 +21,10 @@ param(
     "-FullStdOutLogOutput"
   )
 )
+
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+Set-StrictMode -Version 3
 
 function Find-UnrealMirrorExe {
   param(
@@ -86,9 +86,8 @@ function Save-FileFromUrl {
   Invoke-WebRequest -Uri $Url -OutFile $DestinationPath -UseBasicParsing
 }
 
-$toolRootPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRootPath = (Resolve-Path (Join-Path $toolRootPath "..")).Path
-$buildScriptPath = Join-Path $toolRootPath "build.bat"
+$projectRootPath = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..")).Path
+$buildScriptPath = Join-Path -Path $projectRootPath -ChildPath "Tool" -AdditionalChildPath "build.bat"
 
 if ([string]::IsNullOrWhiteSpace($ScreenshotPath)) {
   $ScreenshotPath = Join-Path $projectRootPath "screenshot.png"
