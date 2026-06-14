@@ -2,17 +2,21 @@
 
 set -eu -o pipefail
 
-cd "$(dirname "$0")"
-
 engine_association=$(
-  python3 - <<ENGINE_ASSOCIATION
+  python3 - <<ENGINE_ASSOCIATION "$(dirname "$0")/../../UnrealMirror.uproject"
 import json
 import pathlib
-uproject_path = pathlib.Path("../UnrealMirror.uproject")
+import sys
+uproject_path = pathlib.Path(sys.argv[1])
 uproject = json.loads(uproject_path.read_text())
 print(uproject['EngineAssociation'])
 ENGINE_ASSOCIATION
 )
+
+if [ -z "$engine_association" ]; then
+  echo 'Failed to get EngineAssociation from UnrealMirror.uproject' >&2
+  exit 1
+fi
 
 uname_system=$(uname -s)
 
@@ -36,9 +40,15 @@ Linux)
   ;;
 esac
 
+setup_environment_sh_path="${batch_files_platform_path}/SetupEnvironment.sh"
+if [ ! -f "$setup_environment_sh_path" ]; then
+  echo "Failed to find SetupEnvironment.sh at ${setup_environment_sh_path}" >&2
+  exit 1
+fi
+
 set +eu
 # shellcheck disable=SC1091
-. "${batch_files_platform_path}/SetupEnvironment.sh" -dotnet "$batch_files_platform_path"
+. "$setup_environment_sh_path" -dotnet "$batch_files_platform_path"
 set -eu
 
 exec dotnet "$@"

@@ -1,5 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+#nullable enable
+
 using UnrealBuildTool;
 
 public class UnrealMirror : ModuleRules
@@ -26,10 +28,5 @@ public class UnrealMirror : ModuleRules
                 "SlateCore",
             }
         );
-
-        // Uncomment if you are using online features
-        // PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-        // To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
     }
 }

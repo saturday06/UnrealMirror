@@ -48,7 +48,7 @@ Push-Location $PSScriptRoot
 try {
   if ($clangFormat) {
     Write-Output "Formatting C/C++ files..."
-    Get-ChildItem ../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
+    Get-ChildItem ../../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
       Write-Output "Formatting: $($_.FullName)"
       & $clangFormat -i $_.FullName
     }
@@ -56,7 +56,7 @@ try {
 
   Write-Output "Formatting C# files..."
   & dotnet tool restore
-  & dotnet tool run csharpier format ../Source
+  & dotnet tool run csharpier format ../../Source
 }
 finally {
   Pop-Location

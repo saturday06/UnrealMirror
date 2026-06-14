@@ -1,24 +1,30 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+#nullable enable
+
 using System;
-using System.Collections.Generic;
 using UnrealBuildTool;
 
 public class UnrealMirrorTarget : TargetRules
 {
-    public static string Vrm4uSetupCommand
+    public static string? SetupPrerequisitesCommand
     {
         get
         {
             string cdCommand;
             if (OperatingSystem.IsWindows())
             {
-                cdCommand = "cd /d \"$(ProjectDir)/Tool\"";
+                cdCommand = "cd /d \"$(ProjectDir)\\Tool\\dotnet\"";
+            }
+            else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+            {
+                cdCommand = "cd \"$(ProjectDir)/Tool/dotnet\"";
             }
             else
             {
-                cdCommand = "cd \"$(ProjectDir)/Tool\"";
+                return null;
             }
+
             string dotnetCommand =
                 "dotnet tool restore && dotnet tool run pwsh -- "
                 + " setup.ps1 "
@@ -37,6 +43,9 @@ public class UnrealMirrorTarget : TargetRules
         DefaultBuildSettings = BuildSettingsVersion.V6;
         IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
         ExtraModuleNames.Add("UnrealMirror");
-        PreBuildSteps.Add(Vrm4uSetupCommand);
+        if (SetupPrerequisitesCommand is { } setupPrerequisitesCommand)
+        {
+            PreBuildSteps.Add(setupPrerequisitesCommand);
+        }
     }
 }

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "startup_cd=%cd%"
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 for /f "delims=" %%A in (
   'powershell -NoLogo -NoProfile -Command "(Get-Content -Path UnrealMirror.uproject -Raw | ConvertFrom-Json).EngineAssociation"'

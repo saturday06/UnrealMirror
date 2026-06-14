@@ -65,7 +65,7 @@ switch ($processArchitecture) {
   }
 }
 
-$cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "cmake"
+$cmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "cmake"
 $cmakeDistributionPath = Join-Path -Path $cmakeFolderPath -ChildPath "distribution"
 New-Item -ItemType Directory $cmakeDistributionPath -Force | Out-Null
 
@@ -128,7 +128,7 @@ elseif ($TargetPlatform -eq "LinuxArm64" -and $IsLinux) {
 elseif ($TargetPlatform -eq "IOS" -and $IsMacOS) {
   $cmakeGenerator = "Xcode"
   $assimpBuildSharedLibs = "OFF"
-  $iosCmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "ios-cmake"
+  $iosCmakeFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "ios-cmake"
   $iosCmakeToolchainPath = Join-Path -Path $iosCmakeFolderPath -ChildPath "ios.toolchain.cmake"
   if (-not (Test-Path $iosCmakeToolchainPath)) {
     git -C $iosCmakeFolderPath submodule update --init --recursive --depth 1
@@ -171,13 +171,13 @@ $cmake = $cmakePaths[0].FullName
 Write-Output "Using CMake: $cmake"
 & $cmake --version
 
-$assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath "VRM4U" -AdditionalChildPath "assimp"
+$assimpSourceFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "VRM4U", "assimp"
 if (-not (Test-Path (Join-Path -Path $assimpSourceFolderPath -ChildPath "Readme.md"))) {
   git -C $assimpSourceFolderPath submodule update --init --recursive --depth 1
 }
 
 $assimpBuildFolderPath = Join-Path -Path $assimpSourceFolderPath -ChildPath "build" -AdditionalChildPath $TargetPlatform, $cmakeConfig
-$vrm4uAssimpBaseFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Plugins", "VRM4U", "ThirdParty", "assimp"
+$vrm4uAssimpBaseFolderPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..", "Plugins", "VRM4U", "ThirdParty", "assimp"
 
 New-Item -ItemType Directory $assimpBuildFolderPath -Force | Out-Null
 

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-using System.Collections.Generic;
+#nullable enable
+
 using UnrealBuildTool;
 
 public class UnrealMirrorEditorTarget : TargetRules
@@ -12,6 +13,9 @@ public class UnrealMirrorEditorTarget : TargetRules
         DefaultBuildSettings = BuildSettingsVersion.V6;
         IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
         ExtraModuleNames.Add("UnrealMirror");
-        PreBuildSteps.Add(UnrealMirrorTarget.Vrm4uSetupCommand);
+        if (UnrealMirrorTarget.SetupPrerequisitesCommand is { } setupPrerequisitesCommand)
+        {
+            PreBuildSteps.Add(setupPrerequisitesCommand);
+        }
     }
 }

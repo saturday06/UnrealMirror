@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
-$uprojectPath = Join-Path $PSScriptRoot "..\UnrealMirror.uproject"
+$uprojectPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..", "UnrealMirror.uproject"
 if (-not (Test-Path -Path $uprojectPath -PathType Leaf)) {
   Write-Output "uproject file was not found: $uprojectPath"
   exit 1

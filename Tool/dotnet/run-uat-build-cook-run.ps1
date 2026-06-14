@@ -38,7 +38,7 @@ else {
   throw $errorMessage
 }
 
-$projectRootPath = Resolve-Path (Join-Path $PSScriptRoot "..")
+$projectRootPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..")
 $projectPath = Join-Path $projectRootPath "UnrealMirror.uproject"
 
 Push-Location $projectRootPath

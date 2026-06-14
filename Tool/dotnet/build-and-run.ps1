@@ -1,10 +1,14 @@
+#!/usr/bin/env pwsh
 # SPDX-License-Identifier: Apache-2.0
-#Requires -Version 5.1
+#Requires -Version 7.4
 
-[CmdletBinding()]
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+Set-StrictMode -Version 3
+
 param(
   [Parameter(ValueFromRemainingArguments = $true)]
-  [string[]]$BuildArguments = @(),
+  [string[]]$BuildArguments,
 
   [string]$GameExePath = $env:UNREAL_MIRROR_APP_EXE,
 
@@ -21,9 +25,6 @@ param(
     "-FullStdOutLogOutput"
   )
 )
-
-$ErrorActionPreference = "Stop"
-Set-StrictMode -Version 2
 
 function Find-UnrealMirrorExe {
   param(
@@ -42,8 +43,8 @@ function Find-UnrealMirrorExe {
     }
 
     $candidate = Get-ChildItem -LiteralPath $searchRoot -Recurse -Filter "UnrealMirror.exe" -File -ErrorAction SilentlyContinue |
-      Sort-Object -Property LastWriteTime -Descending |
-      Select-Object -First 1
+    Sort-Object -Property LastWriteTime -Descending |
+    Select-Object -First 1
 
     if ($null -ne $candidate) {
       return $candidate.FullName
