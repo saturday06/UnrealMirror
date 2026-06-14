@@ -42,7 +42,7 @@ elseif ($IsLinux) {
   $ueRoot = $env:UE_ROOT
   if (-not ($ueRoot)) {
     $errorMessage = 'Please set the "UE_ROOT" environment variable.' +
-    ' See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine#5b-build-a-project-through-the-command-line'
+    ' See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine?application_version=5.7#5b-build-a-project-through-the-command-line'
     throw $errorMessage
   }
   $runUatPath = "${ueRoot}/RunUAT.sh"

@@ -30,7 +30,7 @@ Darwin)
 Linux)
   if [ -z "${UE_ROOT:-}" ]; then
     echo 'Please set the "UE_ROOT" environment variable' >&2
-    echo 'See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine#5b-build-a-project-through-the-command-line' >&2
+    echo 'See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine?application_version=5.7#5b-build-a-project-through-the-command-line' >&2
     exit 1
   fi
   batch_files_platform_path="${UE_ROOT}/Linux"
