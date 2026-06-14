@@ -23,16 +23,15 @@ uname_system=$(uname -s)
 case "$uname_system" in
 Darwin)
   if [ -z "${UE_ROOT:-}" ]; then
-    UE_ROOT="/Users/Shared/Epic Games/UE_${engine_association}"
+    UE_ROOT="/Users/Shared/Epic Games/UE_${engine_association}/Engine/Build/BatchFiles"
   fi
-  batch_files_platform_path="${UE_ROOT}/Engine/Build/BatchFiles/Mac"
   ;;
 Linux)
   if [ -z "${UE_ROOT:-}" ]; then
     echo 'Please set the "UE_ROOT" environment variable' >&2
+    echo 'See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine#5b-build-a-project-through-the-command-line' >&2
     exit 1
   fi
-  batch_files_platform_path="${UE_ROOT}/Engine/Build/BatchFiles/Linux"
   ;;
 *)
   echo "Unsupported platform: ${uname_system}" >&2
@@ -40,7 +39,7 @@ Linux)
   ;;
 esac
 
-setup_environment_sh_path="${batch_files_platform_path}/SetupEnvironment.sh"
+setup_environment_sh_path="${UE_ROOT}/SetupEnvironment.sh"
 if [ ! -f "$setup_environment_sh_path" ]; then
   echo "Failed to find SetupEnvironment.sh at ${setup_environment_sh_path}" >&2
   exit 1
@@ -48,7 +47,7 @@ fi
 
 set +eu
 # shellcheck disable=SC1090
-. "$setup_environment_sh_path" -dotnet "$batch_files_platform_path"
+. "$setup_environment_sh_path" -dotnet "$UE_ROOT"
 set -eu
 
 exec dotnet "$@"

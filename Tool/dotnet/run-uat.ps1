@@ -34,17 +34,18 @@ if ($IsWindows) {
 elseif ($IsMacOS) {
   $ueRoot = $env:UE_ROOT
   if (-not ($ueRoot)) {
-    $ueRoot = "/Users/Shared/Epic Games/UE_${unrealEngineAssociation}"
+    $ueRoot = "/Users/Shared/Epic Games/UE_${unrealEngineAssociation}/Engine/Build/BatchFiles"
   }
-  $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
+  $runUatPath = "${ueRoot}/RunUAT.sh"
 }
 elseif ($IsLinux) {
   $ueRoot = $env:UE_ROOT
   if (-not ($ueRoot)) {
-    $errorMessage = 'Please set the "UE_ROOT" environment variable'
+    $errorMessage = 'Please set the "UE_ROOT" environment variable.' +
+    ' See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine#5b-build-a-project-through-the-command-line'
     throw $errorMessage
   }
-  $runUatPath = "${ueRoot}/Engine/Build/BatchFiles/RunUAT.sh"
+  $runUatPath = "${ueRoot}/RunUAT.sh"
 }
 else {
   $errorMessage = "Unsupported platform: $($PSVersionTable.Platform)"

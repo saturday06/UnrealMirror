@@ -7,7 +7,8 @@ fn main() {
         .or_else(|| {
             env::var_os("UE_ROOT").map(|root| {
                 PathBuf::from(root)
-                    .join("Engine")
+                    .join("..")
+                    .join("..")
                     .join("Source")
                     .join("ThirdParty")
                     .join("Boost")
