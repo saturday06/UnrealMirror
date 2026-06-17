@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # SPDX-License-Identifier: Apache-2.0
-#Requires -Version 7.4
+#Requires -Version 7.6
 
 param(
   [ValidateSet("Android", "IOS", "Linux", "LinuxArm64", "Mac", "Win64")]
@@ -38,7 +38,7 @@ else {
   throw $errorMessage
 }
 
-$projectRootPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..")
+$projectRootPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..", "..")
 $projectPath = Join-Path $projectRootPath "UnrealMirror.uproject"
 
 Push-Location $projectRootPath

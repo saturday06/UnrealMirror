@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # SPDX-License-Identifier: Apache-2.0
-#Requires -Version 7.4
+#Requires -Version 7.6
 
 param(
   [Parameter(ValueFromRemainingArguments = $true)]
@@ -92,7 +92,7 @@ function Save-FileFromUrl {
   Invoke-WebRequest -Uri $Url -OutFile $DestinationPath -UseBasicParsing
 }
 
-$projectRootPath = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "..")).Path
+$projectRootPath = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..", "..")).Path
 $buildScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "run-uat-build-cook-run.ps1"
 
 if ([string]::IsNullOrWhiteSpace($ScreenshotPath)) {

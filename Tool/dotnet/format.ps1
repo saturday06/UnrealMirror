@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # SPDX-License-Identifier: Apache-2.0
-#Requires -Version 7.4
+#Requires -Version 7.6
 
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true

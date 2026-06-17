@@ -2,7 +2,7 @@
 /.vs/
 /.vscode/
 /.vsconfig
-/*.sln
+/*.slnx
 /*.xcworkspace/
 /ArchivedBuilds/
 /Backup/

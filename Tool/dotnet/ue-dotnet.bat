@@ -13,21 +13,20 @@ if "%engine_association%"=="" (
   exit /b 1
 )
 
-set "registry_path=HKLM:\SOFTWARE\EpicGames\Unreal Engine\%engine_association%"
-set "registry_value=InstalledDirectory"
+set "registry_path=HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds"
 
 for /f "delims=" %%A in (
-  'powershell -NoLogo -NoProfile -Command "(Get-ItemProperty -Path $env:registry_path -Name $env:registry_value).$env:registry_value"'
+  'powershell -NoLogo -NoProfile -Command "(Get-ItemProperty -Path $env:registry_path -Name $env:engine_association).$env:engine_association"'
 ) do (
-  set "engine_root_path=%%A"
+  set "engine_installed_path=%%A"
 )
-if "%engine_root_path%"=="" (
+if "%engine_installed_path%"=="" (
   echo "Failed to read Unreal Engine %engine_association% InstalledDirectory from registry"
   exit /b 1
 )
 
-echo Unreal Engine root path: %engine_root_path%
-call "%engine_root_path%\Engine\Build\BatchFiles\GetDotnetPath.bat"
+echo Unreal Engine installed path: %engine_installed_path%
+call "%engine_installed_path%\Engine\Build\BatchFiles\GetDotnetPath.bat"
 
 cd /d "%startup_cd%"
 
