@@ -2,19 +2,21 @@
 
 set -eu -o pipefail
 
-engine_association=$(
-  python3 - "$(dirname "$0")/../../UnrealMirror.uproject" <<ENGINE_ASSOCIATION
+engine_major_minor_version=$(
+  python3 - "$(dirname "$0")/../../Plugins/VRM4U/VRM4U.uplugin" <<'ENGINE_MAJOR_MINOR_VERSION'
 import json
 import pathlib
 import sys
-uproject_path = pathlib.Path(sys.argv[1])
-uproject = json.loads(uproject_path.read_text())
-print(uproject['EngineAssociation'])
-ENGINE_ASSOCIATION
+uplugin_path = pathlib.Path(sys.argv[1])
+uplugin = json.loads(uplugin_path.read_text())
+engine_version = uplugin['EngineVersion']
+engine_major_minor_version = '.'.join(engine_version.split('.')[:2])
+print(engine_major_minor_version)
+ENGINE_MAJOR_MINOR_VERSION
 )
 
-if [ -z "$engine_association" ]; then
-  echo 'Failed to get EngineAssociation from UnrealMirror.uproject' >&2
+if [ -z "$engine_major_minor_version" ]; then
+  echo 'Failed to get engine version from VRM4U.uplugin' >&2
   exit 1
 fi
 
@@ -23,7 +25,7 @@ uname_system=$(uname -s)
 case "$uname_system" in
 Darwin)
   if [ -z "${UE_ROOT:-}" ]; then
-    UE_ROOT="/Users/Shared/Epic Games/UE_${engine_association}/Engine/Build/BatchFiles"
+    UE_ROOT="/Users/Shared/Epic Games/UE_${engine_major_minor_version}/Engine/Build/BatchFiles"
   fi
   batch_files_platform_path="${UE_ROOT}/Mac"
   ;;
