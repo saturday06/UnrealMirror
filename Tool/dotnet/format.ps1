@@ -8,6 +8,7 @@ Set-StrictMode -Version 3
 
 $config = Import-PowerShellDataFile (Join-Path -Path $PSScriptRoot -ChildPath "config.psd1")
 $vsVersionRange = $config.VsVersionRange
+$clangFormatMajorVersion = $config.ClangFormatMajorVersion
 
 $clangFormat = $null
 if ($IsWindows) {
@@ -26,21 +27,22 @@ if ($IsWindows) {
     if ($vsInstallationPath) {
       $clangFormat = Join-Path $vsInstallationPath "VC\Tools\Llvm\x64\bin\clang-format.exe"
     }
+    Write-Output "clang-format path: $clangFormat"
   }
 }
 elseif ($IsMacOS) {
   try {
-    $clangFormat = & xcrun --find clang-format
+    $clangFormat = & xcrun --find "clang-format-${clangFormatMajorVersion}"
   }
   catch [System.Management.Automation.NativeCommandExitException] {
-    Write-Output "clang-format was not found in xcrun"
+    Write-Output "clang-format-${clangFormatMajorVersion} was not found in xcrun"
   }
 }
 if (-not $clangFormat -or -not (Test-Path $clangFormat)) {
   try {
-    $clangFormat = (Get-Command clang-format).Source
+    $clangFormat = (Get-Command "clang-format-${clangFormatMajorVersion}").Source
   } catch [System.Management.Automation.CommandNotFoundException] {
-    Write-Output "clang-format was not found"
+    Write-Output "clang-format-${clangFormatMajorVersion} was not found"
   }
 }
 

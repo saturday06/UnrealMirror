@@ -4,4 +4,5 @@
   VcVersion = "vc143"
   OsxDeploymentTarget = "14.0"
   CmakeVersion = "4.3.3"
+  ClangFormatMajorVersion = "19"
 }

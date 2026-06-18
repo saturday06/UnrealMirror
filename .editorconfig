@@ -24,22 +24,11 @@ indent_size = unset
 [*.ini]
 end_of_line = crlf
 
-[*.c]
+[*.{c,cpp,h}]
 end_of_line = crlf
-indent_size = unset
+indent_size = 4
 indent_style = unset
-tab_width = 4
-
-[*.cpp]
-end_of_line = crlf
 indent_size = unset
-indent_style = unset
-tab_width = 4
-
-[*.h]
-end_of_line = crlf
-indent_size = unset
-indent_style = unset
 tab_width = 4
 
 [*.cs]
@@ -47,9 +36,6 @@ end_of_line = crlf
 indent_size = 4
 indent_style = tab
 tab_width = 4
-
-[*.rs]
-indent_size = unset
 
 [*.uproject]
 end_of_line = crlf
