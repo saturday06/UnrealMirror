@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 $env:DOTNET_CLI_UI_LANGUAGE = "en"
 $env:VSLANG = "1033"
 

@@ -30,6 +30,7 @@ call "%engine_installed_path%\Engine\Build\BatchFiles\GetDotnetPath.bat"
 
 cd /d "%startup_cd%"
 
+set "DOTNET_CLI_TELEMETRY_OPTOUT=1"
 set "DOTNET_CLI_UI_LANGUAGE=en"
 set "VSLANG=1033"
 

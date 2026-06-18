@@ -52,4 +52,5 @@ set +eu
 . "$setup_environment_sh_path" -dotnet "$batch_files_platform_path"
 set -eu
 
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
 exec dotnet "$@"
