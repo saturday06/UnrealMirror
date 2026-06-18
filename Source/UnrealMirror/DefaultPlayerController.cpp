@@ -2,8 +2,9 @@
 
 #include "DefaultPlayerController.h"
 
-void ADefaultPlayerController::BeginPlay() {
-  Super::BeginPlay();
+void ADefaultPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
 
-  bShowMouseCursor = true;
+	bShowMouseCursor = true;
 }

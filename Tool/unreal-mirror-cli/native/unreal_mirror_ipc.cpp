@@ -26,7 +26,8 @@ std::string make_reply_queue_name() {
 #else
   const int pid = getpid();
 #endif
-  const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto ticks =
+      std::chrono::steady_clock::now().time_since_epoch().count();
   std::ostringstream stream;
   stream << "unreal_mirror_reply_" << pid << "_" << ticks;
   return stream.str();
@@ -40,8 +41,7 @@ void append_field(std::string &message, const std::string &field) {
 }
 
 std::string build_request(const std::string &reply_queue_name,
-                          const std::string &command,
-                          const std::string &path) {
+                          const std::string &command, const std::string &path) {
   std::string message = "UMQ1\n";
   append_field(message, reply_queue_name);
   append_field(message, command);
@@ -49,29 +49,33 @@ std::string build_request(const std::string &reply_queue_name,
   return message;
 }
 
-void write_response(char *response, size_t response_len, const std::string &text) {
+void write_response(char *response, size_t response_len,
+                    const std::string &text) {
   if (response == nullptr || response_len == 0) {
     return;
   }
 
-  const size_t copy_len = (text.size() < response_len - 1) ? text.size() : response_len - 1;
+  const size_t copy_len =
+      (text.size() < response_len - 1) ? text.size() : response_len - 1;
   std::memcpy(response, text.data(), copy_len);
   response[copy_len] = '\0';
 }
 
 struct reply_queue_guard {
   explicit reply_queue_guard(const std::string &name) : name(name) {}
-  ~reply_queue_guard() { boost::interprocess::message_queue::remove(name.c_str()); }
+  ~reply_queue_guard() {
+    boost::interprocess::message_queue::remove(name.c_str());
+  }
   std::string name;
 };
 
 } // namespace
 
 extern "C" int unreal_mirror_ipc_send_command(const char *command,
-                                               const char *path,
-                                               unsigned int timeout_ms,
-                                               char *response,
-                                               size_t response_len) {
+                                              const char *path,
+                                              unsigned int timeout_ms,
+                                              char *response,
+                                              size_t response_len) {
   if (command == nullptr || path == nullptr) {
     write_response(response, response_len, "command and path are required");
     return -1;
@@ -89,8 +93,7 @@ extern "C" int unreal_mirror_ipc_send_command(const char *command,
     boost::interprocess::message_queue server_queue(
         boost::interprocess::open_only, kServerQueueName);
 
-    const std::string request =
-        build_request(reply_queue_name, command, path);
+    const std::string request = build_request(reply_queue_name, command, path);
     server_queue.send(request.data(), request.size(), 0);
 
     std::string buffer(kMaxMessageSize, '\0');
@@ -103,7 +106,8 @@ extern "C" int unreal_mirror_ipc_send_command(const char *command,
     const bool received = reply_queue.timed_receive(
         buffer.data(), buffer.size(), received_size, priority, deadline);
     if (!received) {
-      write_response(response, response_len, "timed out waiting for UnrealMirror reply");
+      write_response(response, response_len,
+                     "timed out waiting for UnrealMirror reply");
       return -2;
     }
 

@@ -11,8 +11,9 @@
  *
  */
 UCLASS()
-class UNREALMIRROR_API ADefaultGameModeBase : public AGameModeBase {
-  GENERATED_BODY()
+class UNREALMIRROR_API ADefaultGameModeBase : public AGameModeBase
+{
+	GENERATED_BODY()
 public:
-  ADefaultGameModeBase();
+	ADefaultGameModeBase();
 };

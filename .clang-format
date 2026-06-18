@@ -1,6 +1,9 @@
-BasedOnStyle: LLVM
+# https://dev.epicgames.com/documentation/unreal-engine/epic-cplusplus-coding-standard-for-unreal-engine
+BasedOnStyle: Microsoft
+UseTab: Always
+AccessModifierOffset: -4
 
-# Unreal Engine の仕様に従い .generated.h は最後に配置されるようにする。
+# `.generated.h` は最後に配置されるようにする。
 SortIncludes: true
 IncludeBlocks: Regroup
 IncludeCategories:

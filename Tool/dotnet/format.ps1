@@ -48,7 +48,7 @@ Push-Location $PSScriptRoot
 try {
   if ($clangFormat) {
     Write-Output "Formatting C/C++ files..."
-    Get-ChildItem ../../Source -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
+    Get-ChildItem ../../Source, ../unreal-mirror-cli -Recurse -File -Include *.c, *.cpp, *.h | ForEach-Object {
       Write-Output "Formatting: $($_.FullName)"
       & $clangFormat -i $_.FullName
     }

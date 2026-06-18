@@ -7,45 +7,45 @@ using UnrealBuildTool;
 
 public class UnrealMirrorTarget : TargetRules
 {
-    public static string? SetupPrerequisitesCommand
-    {
-        get
-        {
-            string cdCommand;
-            if (OperatingSystem.IsWindows())
-            {
-                cdCommand = "cd /d \"$(ProjectDir)\\Tool\\dotnet\"";
-            }
-            else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-            {
-                cdCommand = "cd \"$(ProjectDir)/Tool/dotnet\"";
-            }
-            else
-            {
-                return null;
-            }
+	public static string? SetupPrerequisitesCommand
+	{
+		get
+		{
+			string cdCommand;
+			if (OperatingSystem.IsWindows())
+			{
+				cdCommand = "cd /d \"$(ProjectDir)\\Tool\\dotnet\"";
+			}
+			else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+			{
+				cdCommand = "cd \"$(ProjectDir)/Tool/dotnet\"";
+			}
+			else
+			{
+				return null;
+			}
 
-            string dotnetCommand =
-                "dotnet tool restore && dotnet tool run pwsh -- "
-                + " setup.ps1 "
-                + " -TargetPlatform \"$(TargetPlatform)\" "
-                + " -TargetConfiguration \"$(TargetConfiguration)\" "
-                + " -TargetType \"$(TargetType)\" ";
+			string dotnetCommand =
+				"dotnet tool restore && dotnet tool run pwsh -- "
+				+ " setup.ps1 "
+				+ " -TargetPlatform \"$(TargetPlatform)\" "
+				+ " -TargetConfiguration \"$(TargetConfiguration)\" "
+				+ " -TargetType \"$(TargetType)\" ";
 
-            return cdCommand + " && " + dotnetCommand;
-        }
-    }
+			return cdCommand + " && " + dotnetCommand;
+		}
+	}
 
-    public UnrealMirrorTarget(TargetInfo Target)
-        : base(Target)
-    {
-        Type = TargetType.Game;
-        DefaultBuildSettings = BuildSettingsVersion.V7;
-        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
-        ExtraModuleNames.Add("UnrealMirror");
-        if (SetupPrerequisitesCommand is { } setupPrerequisitesCommand)
-        {
-            PreBuildSteps.Add(setupPrerequisitesCommand);
-        }
-    }
+	public UnrealMirrorTarget(TargetInfo Target)
+		: base(Target)
+	{
+		Type = TargetType.Game;
+		DefaultBuildSettings = BuildSettingsVersion.V7;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
+		ExtraModuleNames.Add("UnrealMirror");
+		if (SetupPrerequisitesCommand is { } setupPrerequisitesCommand)
+		{
+			PreBuildSteps.Add(setupPrerequisitesCommand);
+		}
+	}
 }

@@ -8,15 +8,16 @@
 #include "AutoScreenshotSubsystem.generated.h"
 
 UCLASS()
-class UNREALMIRROR_API UAutoScreenshotSubsystem : public UWorldSubsystem {
-  GENERATED_BODY()
+class UNREALMIRROR_API UAutoScreenshotSubsystem : public UWorldSubsystem
+{
+	GENERATED_BODY()
 
 public:
-  virtual void OnWorldBeginPlay(UWorld &InWorld) override;
+	virtual void OnWorldBeginPlay(UWorld &InWorld) override;
 
 private:
-  FTimerHandle ScreenshotTimerHandle;
-  FTimerHandle ExitTimerHandle;
+	FTimerHandle ScreenshotTimerHandle;
+	FTimerHandle ExitTimerHandle;
 
-  void TakeScreenshotAndExit();
+	void TakeScreenshotAndExit();
 };

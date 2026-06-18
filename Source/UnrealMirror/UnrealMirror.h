@@ -5,8 +5,9 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-class FUnrealMirrorModule : public FDefaultGameModuleImpl {
+class FUnrealMirrorModule : public FDefaultGameModuleImpl
+{
 public:
-  virtual void StartupModule() override;
-  virtual void ShutdownModule() override;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };

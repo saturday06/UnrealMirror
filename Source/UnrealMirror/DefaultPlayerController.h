@@ -11,8 +11,9 @@
  *
  */
 UCLASS()
-class UNREALMIRROR_API ADefaultPlayerController : public APlayerController {
-  GENERATED_BODY()
+class UNREALMIRROR_API ADefaultPlayerController : public APlayerController
+{
+	GENERATED_BODY()
 protected:
-  virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
 };

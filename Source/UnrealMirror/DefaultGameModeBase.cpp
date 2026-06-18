@@ -4,6 +4,7 @@
 
 #include "DefaultPlayerController.h"
 
-ADefaultGameModeBase::ADefaultGameModeBase() {
-  PlayerControllerClass = ADefaultPlayerController::StaticClass();
+ADefaultGameModeBase::ADefaultGameModeBase()
+{
+	PlayerControllerClass = ADefaultPlayerController::StaticClass();
 }
