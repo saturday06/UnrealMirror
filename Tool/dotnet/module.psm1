@@ -9,7 +9,7 @@ Set-StrictMode -Version 3
 .Synopsis
   Finds the Unreal Engine script root path.
 #>
-fugnction Find-UnrealEngineScriptRootPath {
+function Find-UnrealEngineScriptRootPath {
   $uprojectPath = Join-Path -Path $PSScriptRoot -ChildPath "../../UnrealMirror.uproject"
   if (-not (Test-Path -Path $uprojectPath -PathType Leaf)) {
     $errorMessage = "uproject file was not found: $uprojectPath"
@@ -22,11 +22,6 @@ fugnction Find-UnrealEngineScriptRootPath {
     $errorMessage = "EngineAssociation is not set in uproject: $uprojectPath"
     throw $errorMessage
   }
-  $unrealEngineVersion = (Import-PowerShellDataFile "${PSScriptRoot}\config.psd1").EngineAssociations.$engineAssociation
-  if (-not $unrealEngineVersion) {
-    $errorMessage = "Unreal Engine version is not set in config.psd1 for EngineAssociation: $engineAssociation"
-    throw $errorMessage
-  }
 
   if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
     # $IsWindows is not available in PowerShell 5.1, so we use the .NET API to check the platform.
@@ -35,9 +30,9 @@ fugnction Find-UnrealEngineScriptRootPath {
       $errorMessage = "Unreal Engine installation list is not found in LauncherInstalled.dat"
       throw $errorMessage
     }
-    $installation = $installationList | Where-Object { $_.ArtifactId -eq "UE_${unrealEngineVersion}" }
+    $installation = $installationList | Where-Object { $_.ArtifactId -eq "UE_${engineAssociation}" }
     if (-not $installation) {
-      $errorMessage = "Unreal Engine installation for version $unrealEngineVersion is not found in LauncherInstalled.dat"
+      $errorMessage = "Unreal Engine installation for version $engineAssociation is not found in LauncherInstalled.dat"
       throw $errorMessage
     }
     $installLocation = $installation.InstallLocation
@@ -47,7 +42,7 @@ fugnction Find-UnrealEngineScriptRootPath {
   if ($IsMacOS) {
     $ueRoot = $env:UE_ROOT
     if (-not ($ueRoot)) {
-      $ueRoot = "/Users/Shared/Epic Games/UE_${unrealEngineVersion}/Engine/Build/BatchFiles"
+      $ueRoot = "/Users/Shared/Epic Games/UE_${engineAssociation}/Engine/Build/BatchFiles"
     }
     return $ueRoot
   }
