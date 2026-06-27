@@ -9,7 +9,7 @@ Set-StrictMode -Version 3
 .Synopsis
   Finds the Unreal Engine script root path.
 #>
-function Find-UnrealEngineScriptRootPath {
+fugnction Find-UnrealEngineScriptRootPath {
   $uprojectPath = Join-Path -Path $PSScriptRoot -ChildPath "../../UnrealMirror.uproject"
   if (-not (Test-Path -Path $uprojectPath -PathType Leaf)) {
     $errorMessage = "uproject file was not found: $uprojectPath"
