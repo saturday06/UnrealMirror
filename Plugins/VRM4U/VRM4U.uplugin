@@ -66,19 +66,31 @@
 	"Plugins": [
 		{
 			"Name": "LevelSequenceEditor",
-			"Enabled": true
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "MovieRenderPipeline",
-			"Enabled": true
+			"Enabled": true,
+			"PlatformDenyList": [
+				"Android",
+				"IOS"
+			],
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "IKRig",
-			"Enabled": true
+			"Enabled": true,
+			"Optional": true
 		},
 		{
 			"Name": "OSC",
-			"Enabled": true
+			"Enabled": true,
+			"Optional": true
 		}
 	]
 }
