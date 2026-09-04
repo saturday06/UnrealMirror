@@ -256,7 +256,7 @@ function Build-Prerequisite {
   Copy-Item (Join-Path -Path $assimpBuildFolderPath -ChildPath "include", "assimp", "*") $vrm4uAssimpIncludeFolderPath -Recurse -Force
 }
 
-$buildPrerequisitesMutex = [System.Threading.Mutex]::new($false, "UnrealMirror.BuildPrerequisites:${PSScriptRoot}")
+$buildPrerequisitesMutex = [System.Threading.Mutex]::new($false, "UnrealMirror.BuildPrerequisites:" + (PSScriptRoot -replace "\\", "/"))
 $buildPrerequisitesMutex.WaitOne([System.Threading.Timeout]::Infinite)
 try {
   Build-Prerequisite `
