@@ -40,7 +40,7 @@ public class VRM4ULoader : ModuleRules
 			var unityProperty = GetType().GetProperty("bUseUnity", BindingFlags.Public | BindingFlags.Instance);
 			if (unityProperty != null)
 			{
-			//	unityProperty.SetValue(this, false);
+				unityProperty.SetValue(this, false);
 			}
 		}
 
