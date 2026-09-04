@@ -32,7 +32,7 @@ public class VRM4ULoader : ModuleRules
 			if (unityBuildProperty != null)
 			{
 				// UE5.8+
-			//	unityBuildProperty.SetValue(this, false);
+				unityBuildProperty.SetValue(this, false);
 			}
 		}
 		{
