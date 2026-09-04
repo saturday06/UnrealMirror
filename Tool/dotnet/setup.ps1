@@ -257,13 +257,23 @@ function Build-Prerequisite {
 }
 
 $buildPrerequisitesMutex = [System.Threading.Mutex]::new($false, "UnrealMirror.BuildPrerequisites:" + ($PSScriptRoot -replace "\\", "/"))
-$buildPrerequisitesMutex.WaitOne([System.Threading.Timeout]::Infinite)
+$buildPrerequisitesMutexAcquired = $false
 try {
+  try {
+    $buildPrerequisitesMutexAcquired = $buildPrerequisitesMutex.WaitOne([System.Threading.Timeout]::Infinite)
+  }
+  catch [System.Threading.AbandonedMutexException] {
+    $buildPrerequisitesMutexAcquired = $true
+  }
+
   Build-Prerequisite `
     -TargetPlatform $TargetPlatform `
     -TargetConfiguration $TargetConfiguration `
     -TargetType $TargetType
 }
 finally {
+  if ($buildPrerequisitesMutexAcquired) {
+    $buildPrerequisitesMutex.ReleaseMutex()
+  }
   $buildPrerequisitesMutex.Dispose()
 }
