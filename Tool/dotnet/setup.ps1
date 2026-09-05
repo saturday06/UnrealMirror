@@ -194,12 +194,10 @@ function Build-Prerequisite {
 
   New-Item -ItemType Directory $assimpBuildFolderPath -Force | Out-Null
 
-  if (-not (Test-Path (Join-Path -Path $assimpBuildFolderPath -ChildPath "CMakeCache.txt"))) {
-    & $cmake `
-      $cmakeGeneratorOptions `
-      -B $assimpBuildFolderPath `
-      -S $assimpSourceFolderPath
-  }
+  & $cmake `
+    $cmakeGeneratorOptions `
+    -B $assimpBuildFolderPath `
+    -S $assimpSourceFolderPath
   & $cmake --build $assimpBuildFolderPath --config $cmakeConfig --parallel 4
 
   if ($TargetPlatform -eq "Win64") {
