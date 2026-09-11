@@ -90,6 +90,7 @@ function Build-Prerequisite {
     if (-not ($TargetPlatform)) {
       $TargetPlatform = "Mac"
     }
+    xcodebuild -downloadComponent MetalToolchain
   }
   elseif ($IsLinux) {
     $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v${cmakeVersion}/cmake-${cmakeVersion}-linux-${cmakeArchitecture}.tar.gz"
