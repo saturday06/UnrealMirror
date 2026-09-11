@@ -6,8 +6,6 @@ param(
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$BuildArguments = @(),
 
-  [string]$GameExePath = $env:UNREAL_MIRROR_APP_EXE,
-
   [string]$ScreenshotPath,
 
   [string]$VrmPath,
@@ -32,6 +30,19 @@ function Find-UnrealMirrorExe {
     [string]$ProjectRootPath
   )
 
+  if ($IsMacOS) {
+    return Join-Path `
+      -Path `
+      "Saved" `
+      -ChildPath `
+      "StagedBuilds", `
+      "Mac", `
+      "UnrealMirror-Mac-Shipping.app", `
+      "Contents", `
+      "MacOS", `
+      "UnrealMirror-Mac-Shipping"
+  }
+
   $searchRoots = @(
     (Join-Path $ProjectRootPath "ArchivedBuilds"),
     (Join-Path $ProjectRootPath "Saved\StagedBuilds")
@@ -39,7 +50,8 @@ function Find-UnrealMirrorExe {
 
   if ($IsWindows) {
     $exeExt = ".exe"
-  } else {
+  }
+  else {
     $exeExt = ""
   }
 
@@ -126,15 +138,13 @@ try {
   Write-Output "Building UnrealMirror with $buildScriptPath"
   & $buildScriptPath @BuildArguments
 
-  if ([string]::IsNullOrWhiteSpace($GameExePath)) {
-    $GameExePath = Find-UnrealMirrorExe -ProjectRootPath $projectRootPath
-  }
+  $gameExePath = Find-UnrealMirrorExe -ProjectRootPath $projectRootPath
 
-  if ([string]::IsNullOrWhiteSpace($GameExePath)) {
+  if ([string]::IsNullOrWhiteSpace($gameExePath)) {
     throw "UnrealMirror.exe was not found under ArchivedBuilds or Saved\StagedBuilds. Set -GameExePath or UNREAL_MIRROR_APP_EXE."
   }
 
-  $resolvedGameExePath = (Resolve-Path $GameExePath).Path
+  $resolvedGameExePath = (Resolve-Path $gameExePath).Path
   if (-not (Test-Path -LiteralPath $resolvedGameExePath -PathType Leaf)) {
     throw "Game executable was not found: $resolvedGameExePath"
   }
