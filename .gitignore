@@ -26,10 +26,9 @@
 /Saved/
 /sample.vrm
 /screenshot.png
-/Tool/bazel/
-/Tool/cmake/
-/Tool/grpc/
-/Tool/unreal-mirror-cli/target/
 /super-linter-output/
+/Tool/cmake/
+/Tool/unreal-mirror-cli/target/
+__pycache__/
 .DS_Store
 UpgradeLog.htm
