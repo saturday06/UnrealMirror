@@ -137,6 +137,11 @@ Push-Location $projectRootPath
 try {
   Write-Output "Building UnrealMirror with $buildScriptPath"
   & $buildScriptPath @BuildArguments
+  $buildExitCode = $LASTEXITCODE
+  if ($buildExitCode -ne 0) {
+    Write-Output "UnrealMirror build failed with code $buildExitCode; skipping application launch."
+    exit $buildExitCode
+  }
 
   $gameExePath = Find-UnrealMirrorExe -ProjectRootPath $projectRootPath
 
@@ -154,6 +159,30 @@ try {
     New-Item -ItemType Directory -Path $screenshotDirectory | Out-Null
   }
 
+  $runtimeVrmPath = $VrmPath
+  $runtimeScreenshotPath = $ScreenshotPath
+  $sandboxRunDirectory = $null
+  if ($IsMacOS) {
+    $appContentsPath = Split-Path -Parent (Split-Path -Parent $resolvedGameExePath)
+    $infoPlistPath = Join-Path $appContentsPath "Info.plist"
+    $bundleId = (& /usr/bin/plutil -extract CFBundleIdentifier raw -o - $infoPlistPath).Trim()
+    if ($bundleId -notmatch '^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$') {
+      throw "Invalid app bundle identifier in ${infoPlistPath}: $bundleId"
+    }
+
+    # App Sandbox permits the game to read/write its own container. Keep each
+    # run separate so an earlier screenshot cannot make a failed run pass.
+    $userProfilePath = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
+    $sandboxRunDirectory = Join-Path -Path $userProfilePath -ChildPath `
+      "Library", "Containers", $bundleId, "Data", "Library", "Caches", `
+      "UnrealMirrorDevRun", ([Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $sandboxRunDirectory -Force | Out-Null
+    $runtimeVrmPath = Join-Path $sandboxRunDirectory "input.vrm"
+    $runtimeScreenshotPath = Join-Path $sandboxRunDirectory "screenshot.png"
+    Copy-Item -LiteralPath $VrmPath -Destination $runtimeVrmPath
+    Write-Output "Sandbox run directory: $sandboxRunDirectory"
+  }
+
   $launchTime = Get-Date
   Write-Output "Using VRM: $VrmPath"
   Write-Output "Starting UnrealMirror: $resolvedGameExePath $($GameArguments -join ' ')"
@@ -162,8 +191,8 @@ try {
   $startInfo.WorkingDirectory = Split-Path -Parent $resolvedGameExePath
   $startInfo.UseShellExecute = $false
   $startInfo.Arguments = ($GameArguments | ForEach-Object { ConvertTo-CommandLineArgument -Argument $_ }) -join " "
-  $startInfo.EnvironmentVariables["UNREAL_MIRROR_SCREENSHOT_PATH"] = $ScreenshotPath
-  $startInfo.EnvironmentVariables["UNREAL_MIRROR_VRM_PATH"] = $VrmPath
+  $startInfo.EnvironmentVariables["UNREAL_MIRROR_SCREENSHOT_PATH"] = $runtimeScreenshotPath
+  $startInfo.EnvironmentVariables["UNREAL_MIRROR_VRM_PATH"] = $runtimeVrmPath
 
   $process = New-Object System.Diagnostics.Process
   $process.StartInfo = $startInfo
@@ -179,13 +208,22 @@ try {
     exit $gameExitCode
   }
 
-  if (-not (Test-Path -LiteralPath $ScreenshotPath -PathType Leaf)) {
-    throw "Screenshot was not created: $ScreenshotPath"
+  if (-not (Test-Path -LiteralPath $runtimeScreenshotPath -PathType Leaf)) {
+    throw "Screenshot was not created: $runtimeScreenshotPath"
   }
 
-  $screenshot = Get-Item -LiteralPath $ScreenshotPath
+  $screenshot = Get-Item -LiteralPath $runtimeScreenshotPath
   if ($screenshot.LastWriteTime -lt $launchTime.AddSeconds(-2)) {
-    throw "Screenshot exists but was not updated by this run: $ScreenshotPath"
+    throw "Screenshot exists but was not updated by this run: $runtimeScreenshotPath"
+  }
+  if ($screenshot.Length -eq 0) {
+    throw "Screenshot is empty: $runtimeScreenshotPath"
+  }
+
+  if ($null -ne $sandboxRunDirectory) {
+    Copy-Item -LiteralPath $runtimeScreenshotPath -Destination $ScreenshotPath -Force
+    # Retain failed runs for diagnosis; remove only this run after successful export.
+    Remove-Item -LiteralPath $sandboxRunDirectory -Recurse -Force -ErrorAction Continue
   }
 
   Write-Output "Screenshot saved: $ScreenshotPath"
