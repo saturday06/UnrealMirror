@@ -19,10 +19,6 @@
 			]
 		},
 		{
-			"Name": "OSC",
-			"Enabled": true
-		},
-		{
 			"Name": "VRM4U",
 			"Enabled": true
 		}
