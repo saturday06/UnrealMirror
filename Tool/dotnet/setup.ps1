@@ -106,7 +106,10 @@ function Build-Prerequisite {
     exit 1
   }
 
-  $cmakeGeneratorOptions = @()
+  $cmakeGeneratorOptions = @(
+    "-DCMAKE_C_STANDARD=17"
+    "-DCMAKE_CXX_STANDARD=20"
+  )
   if ($TargetPlatform -eq "Android") {
     $cmakeGenerator = "Unix Makefiles"
     $assimpBuildSharedLibs = "OFF"
@@ -131,7 +134,7 @@ function Build-Prerequisite {
   elseif ($TargetPlatform -eq "Linux" -and $IsLinux) {
     $cmakeGenerator = "Unix Makefiles"
     $unrealEngineScriptRootPath = Find-UnrealEngineScriptRootPath
-    $cmakeFindRootPath = Join-Path `
+    $cmakeSysrootPath = Join-Path `
       -Path `
       $unrealEngineScriptRootPath `
       -ChildPath `
@@ -145,10 +148,16 @@ function Build-Prerequisite {
       "v26_clang-20.1.8-rockylinux8", `
       "x86_64-unknown-linux-gnu"
     $cmakeGeneratorOptions += @(
-      "-DCMAKE_C_COMPILER=${cmakeFindRootPath}/bin/clang"
-      "-DCMAKE_CXX_COMPILER=${cmakeFindRootPath}/bin/clang++"
-      "-DCMAKE_CXX_FLAGS=-std=c++20 -stdlib=libc++"
-      "-DCMAKE_FIND_ROOT_PATH=${cmakeFindRootPath}"
+      "-DCMAKE_C_COMPILER=${cmakeSysrootPath}/bin/clang"
+      "-DCMAKE_CXX_COMPILER=${cmakeSysrootPath}/bin/clang++"
+      "-DCMAKE_SYSROOT=${cmakeSysrootPath}"
+      "-DCMAKE_FIND_ROOT_PATH=${cmakeSysrootPath}"
+      "-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=BOTH"
+      "-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY"
+      "-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY"
+      "-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY"
+      "-DASSIMP_BUILD_ZLIB=ON"
+      "-DCMAKE_CXX_FLAGS=-stdlib=libc++"
     )
     $assimpBuildSharedLibs = "OFF"
   }
