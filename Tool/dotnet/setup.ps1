@@ -12,6 +12,8 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version 3
 
+Import-Module -Name "${PSScriptRoot}\module.psm1"
+
 function Build-Prerequisite {
   param(
     [string]$TargetPlatform,
@@ -128,6 +130,26 @@ function Build-Prerequisite {
   }
   elseif ($TargetPlatform -eq "Linux" -and $IsLinux) {
     $cmakeGenerator = "Unix Makefiles"
+    $unrealEngineScriptRootPath = Find-UnrealEngineScriptRootPath
+    $cmakeFindRootPath = Join-Path `
+      -Path `
+      $unrealEngineScriptRootPath `
+      -ChildPath `
+      "..", `
+      "..", `
+      "Extras", `
+      "ThirdPartyNotUE", `
+      "SDKs", `
+      "HostLinux", `
+      "Linux_x64", `
+      "v26_clang-20.1.8-rockylinux8", `
+      "x86_64-unknown-linux-gnu"
+    $cmakeGeneratorOptions += @(
+      "-DCMAKE_C_COMPILER=${cmakeFindRootPath}/bin/clang"
+      "-DCMAKE_CXX_COMPILER=${cmakeFindRootPath}/bin/clang++"
+      "-DCMAKE_CXX_FLAGS=-std=c++20 -stdlib=libc++"
+      "-DCMAKE_FIND_ROOT_PATH=${cmakeFindRootPath}"
+    )
     $assimpBuildSharedLibs = "OFF"
   }
   elseif ($TargetPlatform -eq "LinuxArm64" -and $IsLinux) {
