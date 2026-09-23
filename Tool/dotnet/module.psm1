@@ -10,6 +10,11 @@ Set-StrictMode -Version 3
   Finds the Unreal Engine script root path.
 #>
 function Find-UnrealEngineScriptRootPath {
+  $uebpLocalRoot = $Env:uebp_LOCAL_ROOT
+  if ($uebpLocalRoot) {
+    return Join-Path -Path $uebpLocalRoot -ChildPath "Engine/Build/BatchFiles"
+  }
+
   $uprojectPath = Join-Path -Path $PSScriptRoot -ChildPath "../../UnrealMirror.uproject"
   if (-not (Test-Path -Path $uprojectPath -PathType Leaf)) {
     $errorMessage = "uproject file was not found: $uprojectPath"
@@ -50,9 +55,9 @@ function Find-UnrealEngineScriptRootPath {
   if ($IsLinux) {
     $ueRoot = $env:UE_ROOT
     if (-not ($ueRoot)) {
-        $errorMessage = 'Please set the "UE_ROOT" environment variable.' +
-        ' See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine?application_version=5.7#5b-build-a-project-through-the-command-line'
-        throw $errorMessage
+      $errorMessage = 'Please set the "UE_ROOT" environment variable.' +
+      ' See https://dev.epicgames.com/documentation/unreal-engine/linux-development-quickstart-for-unreal-engine?application_version=5.7#5b-build-a-project-through-the-command-line'
+      throw $errorMessage
     }
     return $ueRoot
   }
