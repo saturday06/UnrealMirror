@@ -43,6 +43,16 @@ function Find-UnrealMirrorExe {
       "UnrealMirror-Mac-Shipping"
   }
 
+  if ($IsLinux) {
+    return Join-Path `
+      -Path `
+      "Saved" `
+      -ChildPath `
+      "StagedBuilds", `
+      "Linux", `
+      "UnrealMirror.sh"
+  }
+
   $searchRoots = @(
     (Join-Path $ProjectRootPath "ArchivedBuilds"),
     (Join-Path $ProjectRootPath "Saved\StagedBuilds")
