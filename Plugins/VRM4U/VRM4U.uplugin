@@ -22,11 +22,7 @@
 		{
 			"Name": "VRM4ULoader",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"PlatformAllowList": [
-				"Win64",
-				"Mac"
-			]
+			"LoadingPhase": "Default"
 		},
 		{
 			"Name": "VRM4UCapture",
@@ -46,11 +42,7 @@
 		{
 			"Name": "VRM4UImporter",
 			"Type": "UncookedOnly",
-			"LoadingPhase": "PreDefault",
-			"PlatformAllowList": [
-				"Win64",
-				"Mac"
-			]
+			"LoadingPhase": "PreDefault"
 		},
 		{
 			"Name": "VRM4UEditor",
