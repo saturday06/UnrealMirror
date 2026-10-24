@@ -1,11 +1,10 @@
 @echo off
 setlocal
-set "startup_cd=%cd%"
-cd /d "%~dp0..\.."
+cd /d "%~dp0"
 set "PSModulePath=" & rem In default pwsh to powershell or powershell to pwsh causes module load error
 
 for /f "delims=" %%A in (
-  'powershell -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command "Import-Module .\Tool\dotnet\module.psm1; Find-UnrealEngineScriptRootPath"'
+  'powershell -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command "Import-Module .\module.psm1; Find-UnrealEngineScriptRootPath"'
 ) do (
   set "unreal_engine_script_root_path=%%A"
 )
@@ -15,8 +14,6 @@ if "%unreal_engine_script_root_path: =%"=="" (
 )
 
 call "%unreal_engine_script_root_path%\GetDotnetPath.bat"
-
-cd /d "%startup_cd%"
 
 set "DOTNET_CLI_TELEMETRY_OPTOUT=1"
 set "DOTNET_CLI_UI_LANGUAGE=en"
