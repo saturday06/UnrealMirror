@@ -354,15 +354,15 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 #endif
 
 			if (mt->HasValidData()) {
-#if	UE_VERSION_OLDER_THAN(4,20,0)
-#else
 				{
 					FMorphTargetLODModel MorphLODModel;
 					MorphLODModel.Reset();
 					MorphLODModel.NumBaseMeshVerts = MorphDeltas.Num();
 					MorphLODModel.SectionIndices.Add(0);
 					MorphLODModel.Vertices = MorphDeltas;
+#if !UE_VERSION_OLDER_THAN(5,0,0)
 					MorphLODModel.NumVertices = MorphDeltas.Num();
+#endif
 
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 					if (mt->MorphLODModels.IsValidIndex(0) == false) {
@@ -380,7 +380,6 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 
 					mt->BaseSkelMesh = sk;
 				}
-#endif
 				MorphTargetList.Add(mt);
 				MorphNameToTargetMap.Add(morphName, mt); // UE5.8用: マッピングを追加
 			}
@@ -389,9 +388,7 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 
 #if WITH_EDITOR
 
-#if	UE_VERSION_OLDER_THAN(4,25,0)
-
-#elif UE_VERSION_OLDER_THAN(5,8,0)
+#if UE_VERSION_OLDER_THAN(5,8,0)
 
 	// to avoid no morph target
 	// on Immediate
@@ -645,8 +642,6 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 #endif
 #else
 
-#if	UE_VERSION_OLDER_THAN(4,24,0)
-#else
 	if (sk->GetResourceForRendering()) {
 		if (sk->GetResourceForRendering()->LODRenderData.Num() > 0) {
 
@@ -677,7 +672,6 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 #endif
 		}
 	}
-#endif
 
 #endif // editor
 
